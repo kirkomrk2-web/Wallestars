@@ -1,17 +1,32 @@
-# Wallestars - n8n Workflow Status Checker
+# Wallestars - Infrastructure Monitoring Tools
 
-This repository contains a tool to check the current status of workflows on an n8n automation platform instance.
+This repository contains tools to monitor your cloud infrastructure and automation workflows.
 
 ## Overview
 
-The `check_n8n_workflows.py` script connects to your n8n instance via the REST API and displays a comprehensive status report of all your workflows.
+**Multiple monitoring scripts for your infrastructure:**
+- `check_n8n_workflows.py` - Monitor n8n automation workflows
+- `check_hostinger_vps.py` - Monitor Hostinger VPS instances
+- `check_all.py` - Unified dashboard for all systems
+- `example_usage.py` - Example using environment variables
 
 ## Features
 
+### n8n Workflow Monitoring
 - 🔐 Secure authentication with n8n instance
 - 📋 Lists all workflows with their current status (Active/Inactive)
 - ⏱️ Shows last execution status and timestamp for each workflow
 - 📊 Provides summary statistics (total workflows, active/inactive counts)
+
+### Hostinger VPS Monitoring
+- 🖥️ List all VPS instances
+- 📊 Display VPS status, specifications, and details
+- 💰 Show account information and balance
+- 📍 View datacenter locations
+
+### Unified Dashboard
+- 🚀 Single command to check all systems
+- 📈 Consolidated status summary
 - ✨ Color-coded output with emoji indicators for easy readability
 
 ## Prerequisites
@@ -42,21 +57,37 @@ First, create your configuration file with your credentials:
 cp config.example.py config.py
 ```
 
-Then edit `config.py` with your n8n instance credentials:
+Then edit `config.py` with your credentials:
 
 ```python
+# n8n Configuration
 N8N_URL = "https://your-n8n-instance.com"
 N8N_EMAIL = "your-email@example.com"
 N8N_PASSWORD = "your-password"
+
+# Hostinger API Configuration
+HOSTINGER_API_TOKEN = "your-hostinger-api-token"
 ```
 
 ⚠️ **Important**: The `config.py` file is gitignored and will not be committed to version control to protect your credentials.
 
 ### Basic Usage
 
-Once configured, simply run the script:
+Once configured, you can run individual checks or a unified dashboard:
+
+**Check n8n workflows only:**
 ```bash
 python3 check_n8n_workflows.py
+```
+
+**Check Hostinger VPS only:**
+```bash
+python3 check_hostinger_vps.py
+```
+
+**Check everything (unified dashboard):**
+```bash
+python3 check_all.py
 ```
 
 ### Using Environment Variables (Alternative)
@@ -154,9 +185,21 @@ If no workflows are displayed:
 1. Verify workflows exist in your n8n instance
 2. Check that your user has permissions to view workflows
 
+## Getting Your API Credentials
+
+### n8n API
+The scripts use your n8n login credentials (email and password) to authenticate via the REST API.
+
+### Hostinger API Token
+To get your Hostinger API token:
+1. Log in to your Hostinger account
+2. Go to the API section in your account settings
+3. Generate a new API token
+4. Copy the token and add it to your `config.py` file
+
 ## Security Note
 
-⚠️ **Important**: This script contains hardcoded credentials. For production use, consider:
+⚠️ **Important**: Credentials are stored in the gitignored `config.py` file. For production use, consider:
 - Using environment variables for credentials
 - Implementing a secure credential storage solution
 - Using API keys instead of username/password authentication
@@ -179,8 +222,19 @@ python3 check_n8n_workflows.py
 
 ## API Documentation
 
-This tool uses the n8n REST API. For more information, see:
+This tool uses multiple APIs:
 - [n8n API Documentation](https://docs.n8n.io/api/)
+- [Hostinger API Documentation](https://www.hostinger.com/api-documentation)
+
+## Files in This Repository
+
+- `check_n8n_workflows.py` - n8n workflow status checker
+- `check_hostinger_vps.py` - Hostinger VPS status checker
+- `check_all.py` - Unified dashboard for all systems
+- `example_usage.py` - Example using environment variables
+- `config.example.py` - Configuration template
+- `requirements.txt` - Python dependencies
+- `.gitignore` - Excludes sensitive files from version control
 
 ## License
 
