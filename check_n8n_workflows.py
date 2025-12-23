@@ -131,7 +131,7 @@ def format_datetime(timestamp: Optional[str]) -> str:
     try:
         dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
         return dt.strftime('%Y-%m-%d %H:%M:%S UTC')
-    except:
+    except (ValueError, TypeError, AttributeError):
         return timestamp
 
 
