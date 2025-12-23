@@ -86,8 +86,15 @@ function showNextCard() {
     const project = projectsPool[currentProjectIndex];
     const cardStack = document.getElementById('cardStack');
     
-    // Remove old cards
-    cardStack.innerHTML = '';
+    // Clean up old card and its event listeners
+    if (currentCard && currentCard._cleanup) {
+        currentCard._cleanup();
+    }
+    
+    // Remove old cards properly
+    while (cardStack.firstChild) {
+        cardStack.removeChild(cardStack.firstChild);
+    }
     
     // Create new card
     currentCard = createCard(project);
@@ -108,14 +115,14 @@ function addSwipeListeners(card) {
     
     const onStart = (e) => {
         isDragging = true;
-        startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+        startX = e.type === 'mousedown' ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
         card.classList.add('dragging');
     };
     
     const onMove = (e) => {
         if (!isDragging) return;
         
-        currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+        currentX = e.type === 'mousemove' ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : currentX);
         const diff = currentX - startX;
         const rotation = diff / 20;
         
@@ -142,6 +149,10 @@ function addSwipeListeners(card) {
             card.style.transform = '';
             card.style.opacity = '';
         }
+        
+        // Clean up document event listeners to prevent memory leaks
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
     };
     
     // Mouse events
@@ -153,6 +164,12 @@ function addSwipeListeners(card) {
     card.addEventListener('touchstart', onStart);
     card.addEventListener('touchmove', onMove);
     card.addEventListener('touchend', onEnd);
+    
+    // Store cleanup function for later use
+    card._cleanup = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+    };
 }
 
 // Handle save action
