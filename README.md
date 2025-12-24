@@ -8,8 +8,10 @@ This repository includes comprehensive documentation for implementing task autom
 
 ## 📚 Documentation
 
+- **[Quick Start Checklist](QUICK_START_CHECKLIST.md)**: ⭐ Step-by-step implementation checklist - Start here!
 - **[ActivePieces Guide](ACTIVEPIECES_GUIDE.md)**: Complete guide to setting up and using ActivePieces for task automation
 - **[Automation Tools](AUTOMATION_TOOLS.md)**: Best automation tools and workflows recommended for this project
+- **[Workflow Examples](WORKFLOW_EXAMPLES.md)**: Ready-to-use workflow examples with JSON configurations
 - **[Configuration](activepieces-config.yml)**: Pre-configured automation workflows ready to implement
 
 ## 🔗 Important Links
@@ -36,8 +38,10 @@ This repository includes comprehensive documentation for implementing task autom
 ## 🎯 Getting Started
 
 1. **Review Documentation**
+   - **Start with**: [Quick Start Checklist](QUICK_START_CHECKLIST.md) ⭐
    - Read the [ActivePieces Guide](ACTIVEPIECES_GUIDE.md)
    - Check [Automation Tools](AUTOMATION_TOOLS.md) for recommended workflows
+   - Review [Workflow Examples](WORKFLOW_EXAMPLES.md) for ready-to-use templates
 
 2. **Set Up ActivePieces**
    - Option A: Use cloud version at https://cloud.activepieces.com/
