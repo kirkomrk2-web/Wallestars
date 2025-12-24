@@ -341,8 +341,10 @@
                 return;
             }
             
-            if (apiToken.length < 10) {
-                alert('❌ API token seems too short. Please check and try again.');
+            // Basic validation: Hostinger API tokens are typically longer than 20 characters
+            // This matches server-side validation
+            if (apiToken.length < 20) {
+                alert('❌ API token seems too short. Hostinger API tokens are typically longer. Please check and try again.');
                 return;
             }
             

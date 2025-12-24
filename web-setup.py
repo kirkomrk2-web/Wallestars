@@ -37,8 +37,10 @@ class SetupHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_error_response(400, "API token is required")
                     return
                 
-                if len(api_token) < 10:
-                    self.send_error_response(400, "API token seems invalid")
+                # Basic validation: Hostinger API tokens are typically longer than 20 characters
+                # This is a simple sanity check, not a comprehensive validation
+                if len(api_token) < 20:
+                    self.send_error_response(400, "API token seems invalid (too short)")
                     return
                 
                 # Create configuration
@@ -108,16 +110,16 @@ def main():
     print("=" * 60)
     print("  Hostinger VPS Setup Web Server")
     print("=" * 60)
-    print(f"")
+    print()
     print(f"🌐 Server starting on port {PORT}...")
-    print(f"")
+    print()
     
     with socketserver.TCPServer(("", PORT), SetupHandler) as httpd:
-        print(f"✅ Server is running!")
-        print(f"")
-        print(f"📱 Open in your browser:")
+        print("✅ Server is running!")
+        print()
+        print("📱 Open in your browser:")
         print(f"   http://localhost:{PORT}")
-        print(f"")
+        print()
         
         # Check if running in Codespaces
         codespace_name = os.environ.get('CODESPACE_NAME')
@@ -127,18 +129,18 @@ def main():
                 'app.github.dev'
             )
             public_url = f"https://{codespace_name}-{PORT}.{github_codespaces_port_forwarding_domain}"
-            print(f"🚀 Codespaces URL:")
+            print("🚀 Codespaces URL:")
             print(f"   {public_url}")
-            print(f"")
+            print()
         
-        print(f"Press Ctrl+C to stop the server")
+        print("Press Ctrl+C to stop the server")
         print("=" * 60)
-        print(f"")
+        print()
         
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n")
+            print()
             print("=" * 60)
             print("  Server stopped")
             print("=" * 60)
