@@ -2,7 +2,6 @@
 Project Manager module for managing tasks and projects using ChatGPT
 """
 
-import os
 from typing import List, Dict, Optional
 from datetime import datetime
 

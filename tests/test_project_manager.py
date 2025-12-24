@@ -3,7 +3,6 @@ Tests for the Project Manager module
 """
 
 import pytest
-from datetime import datetime
 from wallestars.project_manager import Task, Project, ProjectManager
 
 
