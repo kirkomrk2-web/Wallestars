@@ -253,7 +253,15 @@ integrations:
     enabled: true
     smtp:
       provider: "custom"
-      # Configure SMTP settings in ActivePieces UI
+      # Configure SMTP settings in ActivePieces UI or use these example values:
+      # host: "smtp.gmail.com"
+      # port: 587
+      # secure: false  # true for 465, false for other ports
+      # auth:
+      #   user: "your-email@example.com"
+      #   pass: "your-app-password"
+      # For Gmail: Use App Password from Google Account settings
+      # For other providers: Refer to your email service documentation
   
   ai_services:
     openai:

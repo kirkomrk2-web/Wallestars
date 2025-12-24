@@ -11,6 +11,8 @@ This file contains ready-to-use workflow examples that can be imported into Acti
 5. Configure the required connections (GitHub, Slack, etc.)
 6. Test and publish
 
+**Note**: In the JSON examples below, backslashes in strings are escaped as `\\` per JSON specification. When parsed, they will become single backslashes in the actual code.
+
 ## Workflow 1: PR Auto-Labeler
 
 **Purpose**: Automatically add labels to pull requests based on the files changed
@@ -334,11 +336,11 @@ This file contains ready-to-use workflow examples that can be imported into Acti
             emoji: emoji,
             color: color,
             status: workflow.conclusion.toUpperCase(),
-            message: \`\${emoji} Build \${workflow.conclusion.toUpperCase()}\\n\` +
-                     \`Workflow: \${workflow.name}\\n\` +
-                     \`Branch: \${workflow.head_branch}\\n\` +
-                     \`Commit: \${workflow.head_sha.substring(0, 7)}\\n\` +
-                     \`\${workflow.html_url}\`
+            message: emoji + ' Build ' + workflow.conclusion.toUpperCase() + '\\n' +
+                     'Workflow: ' + workflow.name + '\\n' +
+                     'Branch: ' + workflow.head_branch + '\\n' +
+                     'Commit: ' + workflow.head_sha.substring(0, 7) + '\\n' +
+                     workflow.html_url
           };
         `
       }
