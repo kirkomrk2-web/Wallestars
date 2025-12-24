@@ -237,6 +237,7 @@ automation_flows:
               message: "🔒 Account locked: {{username}} (too many failed attempts)"
             - type: email.send
               to: "{{user_email}}"
+              # NOTE: user_email should be retrieved from user database in production
               subject: "Account Locked - Security Alert"
               body: "Your account has been locked due to multiple failed login attempts"
     

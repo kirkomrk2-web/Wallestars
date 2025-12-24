@@ -801,6 +801,17 @@ This file contains ready-to-use workflow examples that can be imported into Acti
               "body_type": "text"
             }
           }
+        },
+        {
+          "name": "Note",
+          "type": "CODE",
+          "settings": {
+            "code": `
+              // NOTE: In production, retrieve user email from your user database
+              // based on userId or username from steps.process_failed_login.output
+              return { note: 'Email notification configured' };
+            `
+          }
         }
       ]
     }
