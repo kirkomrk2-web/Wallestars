@@ -203,13 +203,13 @@ automation_flows:
             - suspicious_ip
         - type: slack.send_message
           channel: "#user-activity"
-          message: "✅ User {username} logged in from {location}"
+          message: "✅ User {{username}} logged in from {{location}}"
         - type: conditional_alert
           if: "suspicious_activity_detected"
           then:
             - type: slack.send_message
               channel: "#security-alerts"
-              message: "⚠️ Suspicious login detected for {username}"
+              message: "⚠️ Suspicious login detected for {{username}}"
     
     - name: "Failed Login Monitor"
       description: "Monitor and respond to failed login attempts"
@@ -226,17 +226,17 @@ automation_flows:
           action_on_exceed: "lock_account"
         - type: slack.send_message
           channel: "#security-logs"
-          message: "❌ Failed login for {username} from {ipAddress}"
+          message: "❌ Failed login for {{username}} from {{ipAddress}}"
         - type: conditional_lock
           if: "attempts >= max_attempts"
           then:
             - type: lock_user_account
-              userId: "{userId}"
+              userId: "{{userId}}"
             - type: slack.send_message
               channel: "#security-alerts"
-              message: "🔒 Account locked: {username} (too many failed attempts)"
+              message: "🔒 Account locked: {{username}} (too many failed attempts)"
             - type: email.send
-              to: "{user_email}"
+              to: "{{user_email}}"
               subject: "Account Locked - Security Alert"
               body: "Your account has been locked due to multiple failed login attempts"
     
@@ -259,7 +259,7 @@ automation_flows:
           then:
             - type: slack.send_message
               channel: "#security-alerts"
-              message: "📊 Session anomalies detected: {anomaly_summary}"
+              message: "📊 Session anomalies detected: {{anomaly_summary}}"
     
     - name: "Login Analytics Reporter"
       description: "Generate daily login analytics reports"
@@ -281,7 +281,7 @@ automation_flows:
           format: "summary"
         - type: slack.send_message
           channel: "#analytics"
-          message: "📈 Daily Login Report: {stats.summary}"
+          message: "📈 Daily Login Report: {{stats.summary}}"
   
   # Communication Automations
   communication_automations:

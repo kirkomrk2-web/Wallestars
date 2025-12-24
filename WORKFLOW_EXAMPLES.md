@@ -795,7 +795,7 @@ This file contains ready-to-use workflow examples that can be imported into Acti
             "pieceName": "gmail",
             "actionName": "send_email",
             "input": {
-              "to": "{{steps.process_failed_login.output.email}}",
+              "to": "user@example.com",
               "subject": "Account Locked - Security Alert",
               "body": "Your Wallestars account has been locked due to multiple failed login attempts. Please contact support@wallestars.com to unlock your account and verify your identity.",
               "body_type": "text"
