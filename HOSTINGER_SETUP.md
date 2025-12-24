@@ -43,7 +43,7 @@ Once logged in:
 3. **Copy your API key**:
    - Click the copy button or manually select and copy the entire key
    - The API key will be a long string of characters (e.g., 40-50 characters)
-   - Example format (not a real key): `c1ghCBBVJoVJIryWby7k5BjeZhuhDzg8Ua3Q9nWl7ec6a479`
+   - Example format: `abcd1234efgh5678ijkl9012mnop3456qrst7890` (placeholder only)
    
 4. **Keep this key secure** - treat it like a password:
    - Store it in a secure password manager
