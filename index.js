@@ -193,7 +193,7 @@ app.get('/', (req, res) => {
           font-weight: 600;
           opacity: 0.8;
         }
-        .session-detail value {
+        .session-detail .value {
           font-family: monospace;
           opacity: 0.9;
         }
@@ -256,23 +256,23 @@ app.get('/', (req, res) => {
           <h3>🔐 Session Information</h3>
           <div class="session-detail">
             <label>Session ID:</label>
-            <value id="sessionId">Loading...</value>
+            <span class="value" id="sessionId">Loading...</span>
           </div>
           <div class="session-detail">
             <label>Created At:</label>
-            <value id="createdAt">Loading...</value>
+            <span class="value" id="createdAt">Loading...</span>
           </div>
           <div class="session-detail">
             <label>Last Visit:</label>
-            <value id="lastVisit">Loading...</value>
+            <span class="value" id="lastVisit">Loading...</span>
           </div>
           <div class="session-detail">
             <label>Visit Count:</label>
-            <value id="visitCount">Loading...</value>
+            <span class="value" id="visitCount">Loading...</span>
           </div>
           <div class="session-detail">
             <label>Status:</label>
-            <value id="sessionStatus">Loading...</value>
+            <span class="value" id="sessionStatus">Loading...</span>
           </div>
           
           <div class="button-group">
