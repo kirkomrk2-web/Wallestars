@@ -15,6 +15,16 @@
 
 const { chromium } = require('playwright');
 
+// Configuration constants
+const CONFIG = {
+    // Timeout for successful login (in milliseconds)
+    SUCCESS_TIMEOUT: parseInt(process.env.SUCCESS_TIMEOUT || '30000', 10),
+    // Timeout for failed/2FA login (in milliseconds)
+    FAILURE_TIMEOUT: parseInt(process.env.FAILURE_TIMEOUT || '60000', 10),
+    // Browser slowdown for visibility (in milliseconds)
+    SLOW_MO: parseInt(process.env.SLOW_MO || '100', 10)
+};
+
 /**
  * Open browser and login to GitHub
  */
@@ -34,7 +44,7 @@ async function loginToGitHub() {
     console.log('[1/7] Launching browser...');
     const browser = await chromium.launch({
         headless: false, // Set to false to see the browser
-        slowMo: 100 // Slow down by 100ms for visibility
+        slowMo: CONFIG.SLOW_MO // Configurable slowdown for visibility
     });
     
     // Create a new browser context (like an incognito window)
@@ -61,7 +71,29 @@ async function loginToGitHub() {
         
         // Submit the login form
         console.log('[6/7] Submitting login form...');
-        await page.click('input[type="submit"][value="Sign in"]');
+        // Try multiple selectors for better reliability
+        const submitSelectors = [
+            'input[type="submit"][value="Sign in"]',
+            'button[type="submit"]',
+            'input[type="submit"]',
+            'button:has-text("Sign in")'
+        ];
+        
+        let submitted = false;
+        for (const selector of submitSelectors) {
+            try {
+                await page.click(selector, { timeout: 2000 });
+                submitted = true;
+                break;
+            } catch (e) {
+                // Try next selector
+                continue;
+            }
+        }
+        
+        if (!submitted) {
+            throw new Error('Could not find login submit button');
+        }
         
         // Wait for navigation after login
         await page.waitForLoadState('networkidle');
@@ -74,16 +106,16 @@ async function loginToGitHub() {
             console.log('\n✓ SUCCESS: Logged into GitHub!');
             console.log(`Current URL: ${currentUrl}`);
             
-            // Keep the browser open for 30 seconds to see the logged-in state
-            console.log('\nBrowser session will remain open for 30 seconds...');
-            await page.waitForTimeout(30000);
+            // Keep the browser open to see the logged-in state
+            console.log(`\nBrowser session will remain open for ${CONFIG.SUCCESS_TIMEOUT / 1000} seconds...`);
+            await page.waitForTimeout(CONFIG.SUCCESS_TIMEOUT);
         } else {
             console.log('\n✗ WARNING: Login may have failed or requires 2FA');
             console.log(`Current URL: ${currentUrl}`);
             
             // Keep browser open longer if login failed to allow manual intervention
-            console.log('\nBrowser session will remain open for 60 seconds...');
-            await page.waitForTimeout(60000);
+            console.log(`\nBrowser session will remain open for ${CONFIG.FAILURE_TIMEOUT / 1000} seconds...`);
+            await page.waitForTimeout(CONFIG.FAILURE_TIMEOUT);
         }
         
     } catch (error) {

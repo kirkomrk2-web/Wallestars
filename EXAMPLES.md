@@ -27,7 +27,18 @@ npm run login
 GITHUB_USERNAME=myuser GITHUB_PASSWORD=mypass node github-login-playwright.js
 ```
 
-### Example 3: Using a .env File
+### Example 3: Configure Timeouts
+
+```bash
+# Customize how long the browser stays open
+# SUCCESS_TIMEOUT: milliseconds to keep browser open after successful login (default: 30000)
+# FAILURE_TIMEOUT: milliseconds to keep browser open if login fails/needs 2FA (default: 60000)
+# SLOW_MO: milliseconds to slow down browser actions for visibility (default: 100)
+
+GITHUB_USERNAME=myuser GITHUB_PASSWORD=mypass SUCCESS_TIMEOUT=60000 FAILURE_TIMEOUT=120000 SLOW_MO=200 node github-login-playwright.js
+```
+
+### Example 4: Using a .env File
 
 Create a `.env` file (don't commit this!):
 
