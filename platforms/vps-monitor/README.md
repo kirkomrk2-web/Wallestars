@@ -57,7 +57,9 @@ VPS Servers → Monitoring Agents → Data Aggregator → API Server → Web Das
 ### 1. Install Monitoring Agent
 
 ```bash
-curl -sSL https://platform.example.com/install.sh | bash
+# Replace YOUR_PLATFORM_URL with your deployment URL
+# Options: wallesters.com, your Netlify URL, or your VPS hostname
+curl -sSL https://YOUR_PLATFORM_URL/install.sh | bash
 ```
 
 ### 2. Configure Agent

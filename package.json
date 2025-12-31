@@ -4,10 +4,7 @@
   "description": "Интелигентна екосистема от платформи и автоматизации с AI в центъра",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node scripts/dev.js",
-    "build": "node scripts/build.js",
-    "start": "node scripts/start.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "automation",

@@ -77,7 +77,12 @@ cd ../..
 2. Отидете на SQL Editor
 3. Изпълнете следния SQL за създаване на основни таблици:
 
+**Note:** Ако използвате PostgreSQL 12 или по-стара версия, първо трябва да активирате uuid-ossp extension с: `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`. За PostgreSQL 13+ можете да използвате `gen_random_uuid()` вместо `uuid_generate_v4()`.
+
 ```sql
+-- Enable UUID extension (if needed for PostgreSQL 12 or older)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Users table
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

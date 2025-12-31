@@ -118,7 +118,7 @@ Include:
 │  Found 12 API Keys                      │
 │                                         │
 │  1. OpenAI API Key                      │
-│     sk-proj-xxxxxxxxxxxx                │
+│     sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx │
 │     📅 Jan 15, 2024                     │
 │     [Go to Message →]                   │
 │                                         │
@@ -277,7 +277,7 @@ POST /api/telegram/connect - Connect account
 GET /api/telegram/chats - List chats
 GET /api/telegram/messages - Get messages
 POST /api/analyze/summary - Generate summary
-POST /api/analyze/keylooker - Find keys/credentials
+POST /api/analyze/keylooker - Find keys/credentials (feature name)
 POST /api/analyze/context - Context search
 GET /api/export/{format} - Export data
 ```
