@@ -329,7 +329,7 @@ logs/
 
 ### Resources
 - 📖 [Full Documentation](./README.md)
-- 🐛 [Issue Tracker](https://github.com/Wallesters-org/Wallestars/issues)
+- 🐛 [GitHub Issues](https://github.com/Wallesters-org/Wallestars/issues)
 - 💬 [Discussions](https://github.com/Wallesters-org/Wallestars/discussions)
 
 ### Community
