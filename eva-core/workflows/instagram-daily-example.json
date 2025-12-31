@@ -2,6 +2,7 @@
   "name": "instagram-daily-automation",
   "description": "Ежедневна автоматизация за Instagram профил",
   "version": "1.0.0",
+  "note": "Environment variables like ${REPORT_EMAIL} should be defined in .env file. See .env.example for all required variables.",
   "eva_config": {
     "personality": "friendly",
     "tone": "casual",
