@@ -22,6 +22,8 @@ jobs:
   validate-workflows:
     runs-on: ubuntu-latest
     name: Validate n8n Workflow JSON
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -61,6 +63,8 @@ jobs:
     name: Sync Workflows to n8n VPS
     needs: validate-workflows
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
@@ -109,6 +113,9 @@ jobs:
     name: Notify Deployment Status
     needs: sync-to-n8n
     if: always()
+    permissions:
+      statuses: write
+      pull-requests: write
     
     steps:
     - name: Create deployment status
