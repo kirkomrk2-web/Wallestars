@@ -187,6 +187,23 @@ configure_firewall() {
 setup_systemd_service() {
     print_info "Setting up systemd service for n8n..."
     
+    # Prompt for credentials
+    read -p "Enter n8n admin username (default: admin): " admin_user
+    admin_user=${admin_user:-admin}
+    
+    read -s -p "Enter n8n admin password (will be hidden): " admin_pass
+    echo
+    
+    # Validate password is not empty
+    while [ -z "$admin_pass" ]; do
+        print_error "Password cannot be empty!"
+        read -s -p "Enter n8n admin password: " admin_pass
+        echo
+    done
+    
+    read -p "Enter n8n host (default: localhost): " n8n_host
+    n8n_host=${n8n_host:-localhost}
+    
     cat << EOF | sudo tee /etc/systemd/system/n8n.service
 [Unit]
 Description=n8n Workflow Automation
@@ -199,9 +216,9 @@ WorkingDirectory=$HOME
 ExecStart=$(which n8n) start
 Restart=on-failure
 Environment=N8N_BASIC_AUTH_ACTIVE=true
-Environment=N8N_BASIC_AUTH_USER=admin
-Environment=N8N_BASIC_AUTH_PASSWORD=changeme123
-Environment=N8N_HOST=localhost
+Environment=N8N_BASIC_AUTH_USER=$admin_user
+Environment=N8N_BASIC_AUTH_PASSWORD=$admin_pass
+Environment=N8N_HOST=$n8n_host
 Environment=N8N_PORT=5678
 
 [Install]
@@ -213,7 +230,8 @@ EOF
     sudo systemctl start n8n
     
     print_success "Systemd service created and started"
-    print_warning "Remember to change the default password!"
+    print_info "Username: $admin_user"
+    print_info "Password: (securely set)"
 }
 
 # Function to install SSL certificate
