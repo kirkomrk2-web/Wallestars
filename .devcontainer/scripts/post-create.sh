@@ -227,11 +227,65 @@ if [ -f "/workspaces/Wallestars/.devcontainer/helpers/supabase-integration.sh" ]
     bash /workspaces/Wallestars/.devcontainer/helpers/supabase-integration.sh || echo -e "${BLUE}ℹ️  Supabase setup skipped${NC}"
 fi
 
+# === Install PM2 globally for process management ===
+echo -e "${YELLOW}📦 Installing PM2 process manager...${NC}"
+npm install -g pm2 || echo -e "${BLUE}ℹ️  PM2 already installed${NC}"
+
 # === Ubuntu VMs Setup ===
 echo -e "${YELLOW}☁️  Initializing VM templates...${NC}"
 if [ -f "/workspaces/Wallestars/.devcontainer/helpers/ubuntu-vm-manager.sh" ]; then
     bash /workspaces/Wallestars/.devcontainer/helpers/ubuntu-vm-manager.sh init || echo -e "${BLUE}ℹ️  VM setup skipped${NC}"
 fi
+
+# === Create Azure VM helper aliases ===
+echo -e "${YELLOW}☁️  Setting up Azure VM helpers...${NC}"
+cat >> /workspace/Wallestars/.devcontainer/helpers/aliases.sh << 'EOF'
+
+# Azure VM Management (15 Ubuntu Pro VMs)
+alias azure-vm-list="az vm list --output table"
+alias azure-vm-start="azure_vm_start"
+alias azure-vm-stop="azure_vm_stop"
+alias azure-vm-status="azure_vm_status"
+
+azure_vm_start() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        echo "Usage: azure-vm-start <vm-name> <resource-group>"
+        return 1
+    fi
+    echo "🚀 Starting VM: $1..."
+    az vm start --name "$1" --resource-group "$2"
+    echo "✅ VM $1 started"
+}
+
+azure_vm_stop() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        echo "Usage: azure-vm-stop <vm-name> <resource-group>"
+        return 1
+    fi
+    echo "🛑 Stopping VM: $1..."
+    az vm stop --name "$1" --resource-group "$2"
+    echo "✅ VM $1 stopped"
+}
+
+azure_vm_status() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        echo "Usage: azure-vm-status <vm-name> <resource-group>"
+        return 1
+    fi
+    az vm show -d --name "$1" --resource-group "$2" --query "powerState" -o table
+}
+
+# PM2 process management
+alias pm2-n8n="pm2 start n8n --name wallestars-n8n -- start"
+alias pm2-list="pm2 list"
+alias pm2-logs="pm2 logs"
+alias pm2-stop-all="pm2 stop all"
+alias pm2-restart-all="pm2 restart all"
+
+# KeePassXC quick access
+alias keepass-get="/workspaces/Wallestars/.devcontainer/helpers/keepass-get.sh"
+
+EOF
 
 echo -e "${GREEN}✅ Post-create setup complete!${NC}"
 echo ""

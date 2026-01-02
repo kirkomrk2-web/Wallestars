@@ -12,7 +12,10 @@
 3. [Cline (Claude Dev) 1M Context](#cline-claude-dev)
 4. [Ubuntu Pro VMs](#ubuntu-pro-vms)
 5. [KeePassXC + Tails OS](#keepassxc--tails-os)
-6. [Platform Integrations](#platform-integrations)
+6. [PM2 Process Manager](#pm2-process-manager)
+7. [Azure VM Management](#azure-vm-management)
+8. [Blockchain Development](#blockchain-development)
+9. [Platform Integrations](#platform-integrations)
 
 ---
 
@@ -547,10 +550,239 @@ platforms/
 | **Cline** | ✅ | Yes | Anthropic API key |
 | **Ubuntu VMs** | ✅ | Yes | Multipass needed |
 | **KeePassXC** | ✅ | Manual | USB mount |
+| **PM2** | ✅ | Yes | Pre-installed |
+| **Azure VMs** | ✅ | Yes | az CLI + token |
+| **Blockchain** | ✅ | Yes | Extensions ready |
 | **n8n** | ✅ | Yes | Auto-start |
 | **Eva Core** | ✅ | Yes | Config template |
 | **PostgreSQL** | ✅ | Yes | Auto-start |
 | **Redis** | ✅ | Yes | Auto-start |
+
+---
+
+## 📦 PM2 Process Manager
+
+### Какво е PM2?
+
+PM2 е production process manager за Node.js applications:
+- **Process Management** - Start, stop, restart processes
+- **Load Balancing** - Cluster mode
+- **Auto Restart** - On crashes or file changes
+- **Monitoring** - Real-time dashboard
+- **Log Management** - Centralized logs
+
+### Usage
+
+```bash
+# Start n8n with PM2
+pm2-n8n
+
+# List all processes
+pm2-list
+
+# View logs
+pm2-logs
+
+# Stop all
+pm2-stop-all
+
+# Restart all
+pm2-restart-all
+
+# Advanced: Start custom process
+pm2 start "node server.js" --name my-app
+
+# Monitor
+pm2 monit
+
+# Save process list
+pm2 save
+
+# Setup auto-start on reboot
+pm2 startup
+```
+
+### n8n with PM2
+
+```bash
+# Start n8n in background
+pm2 start n8n --name wallestars-n8n -- start
+
+# View logs
+pm2 logs wallestars-n8n
+
+# Restart
+pm2 restart wallestars-n8n
+
+# Stop
+pm2 stop wallestars-n8n
+
+# Delete
+pm2 delete wallestars-n8n
+```
+
+### Benefits
+
+- ✅ n8n runs in background, container stays alive
+- ✅ Auto-restart if n8n crashes
+- ✅ Better log management
+- ✅ Multiple processes support
+- ✅ Zero-downtime reload
+
+---
+
+## ☁️ Azure VM Management
+
+### 15 Ubuntu Pro VMs Available
+
+**Your Account:**
+- 5 free VMs (Ubuntu Pro personal)
+- 10 bonus VMs
+
+**Pre-installed Commands:**
+
+```bash
+# List all VMs
+azure-vm-list
+
+# Start VM
+azure-vm-start <vm-name> <resource-group>
+# Example: azure-vm-start wallestars-n8n my-resource-group
+
+# Stop VM
+azure-vm-stop <vm-name> <resource-group>
+
+# Check status
+azure-vm-status <vm-name> <resource-group>
+
+# Advanced: Create new VM
+az vm create \
+    --resource-group my-rg \
+    --name wallestars-vm \
+    --image UbuntuLTS \
+    --admin-username azureuser \
+    --generate-ssh-keys \
+    --size Standard_B2s
+
+# SSH into VM
+ssh azureuser@<vm-ip-address>
+
+# Deploy n8n to VM
+scp -r /workspaces/Wallestars/workflows/ azureuser@<vm-ip>:~/
+ssh azureuser@<vm-ip>
+cd workflows
+docker-compose up -d
+```
+
+### Recommended VM Setup
+
+**For n8n Server:**
+- Size: Standard_B2s (2 vCPUs, 4GB RAM)
+- OS: Ubuntu Pro 22.04 LTS
+- Disk: 30GB SSD
+
+**For Eva Processing:**
+- Size: Standard_B4ms (4 vCPUs, 16GB RAM)
+- OS: Ubuntu Pro 22.04 LTS
+- Disk: 50GB SSD
+
+**For Database:**
+- Size: Standard_D2s_v3 (2 vCPUs, 8GB RAM)
+- OS: Ubuntu Pro 22.04 LTS
+- Disk: 100GB Premium SSD
+
+### Benefits of Ubuntu Pro
+
+- ✅ Extended Security Maintenance (ESM)
+- ✅ Kernel Livepatch (no reboot for patches)
+- ✅ FIPS compliance available
+- ✅ 24/7 Enterprise support
+- ✅ 10 years of support
+
+---
+
+## ⛓️ Blockchain Development
+
+### Supported Blockchains
+
+1. **Ethereum** - Hardhat, Solidity
+2. **Solana** - Anchor, Rust
+3. **Polygon** - EVM compatible
+4. **BSC** - Binance Smart Chain
+
+### Pre-installed Extensions
+
+```
+- juanblanco.solidity - Solidity language support
+- tintinweb.solidity-visual-auditor - Security auditor
+- nomicfoundation.hardhat-solidity - Hardhat integration
+```
+
+### Quick Start: Ethereum
+
+```bash
+# Create Hardhat project
+mkdir -p /workspaces/Wallestars/blockchain/ethereum
+cd /workspaces/Wallestars/blockchain/ethereum
+
+# Initialize Hardhat
+npx hardhat init
+
+# Install dependencies
+npm install @openzeppelin/contracts
+
+# Create smart contract
+cat > contracts/WallestarsNFT.sol << 'EOF'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract WallestarsNFT is ERC721, Ownable {
+    uint256 private _tokenIdCounter;
+
+    constructor() ERC721("Wallestars", "WSTR") Ownable(msg.sender) {}
+
+    function safeMint(address to) public onlyOwner {
+        uint256 tokenId = _tokenIdCounter;
+        _tokenIdCounter++;
+        _safeMint(to, tokenId);
+    }
+}
+EOF
+
+# Compile
+npx hardhat compile
+
+# Test local network
+npx hardhat node
+
+# Deploy (in another terminal)
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+### DJ Workflow Integration
+
+Вашият `dj-workflow-multichain.json` вече съдържа:
+- Ethereum (RPC: https://eth-mainnet.alchemyapi.io/v2/...)
+- Polygon (RPC: https://polygon-rpc.com)
+- Solana (RPC: https://api.mainnet-beta.solana.com)
+- BSC (RPC: https://bsc-dataseed.binance.org/)
+
+```bash
+# Test blockchain connections
+cd /workspaces/Wallestars/workflows
+node test-blockchain-rpcs.js
+```
+
+### Security Best Practices
+
+1. ✅ Never commit private keys
+2. ✅ Use environment variables for RPC URLs
+3. ✅ Test on testnets first (Goerli, Mumbai, Devnet)
+4. ✅ Audit contracts with security tools
+5. ✅ Use OpenZeppelin libraries
 
 ---
 
@@ -589,9 +821,15 @@ graph LR
 - [Ubuntu Pro](https://ubuntu.com/pro)
 - [Multipass](https://multipass.run/)
 - [KeePassXC](https://keepassxc.org/)
+- [PM2 Documentation](https://pm2.keymetrics.io/)
+- [Azure CLI](https://docs.microsoft.com/cli/azure/)
+- [Hardhat](https://hardhat.org/)
+- [Solidity](https://docs.soliditylang.org/)
 
 ---
 
 **Автор**: Wallestars Team  
+**Версия**: 2.1.0 (Enhanced with Cloud Agent improvements)  
+**Дата**: 2026-01-02  
 **Последна актуализация**: 2026-01-02  
 **Версия**: 2.0.0

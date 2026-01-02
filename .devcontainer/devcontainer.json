@@ -149,10 +149,21 @@
         "orta.vscode-jest",
         "firsttris.vscode-jest-runner",
         "streetsidesoftware.code-spell-checker",
+        "ms-playwright.playwright",
+        "hbenl.vscode-test-explorer",
         
         // === Security ===
         "trunk.io",
         "snyk-security.snyk-vulnerability-scanner",
+        "sonarsource.sonarlint-vscode",
+        
+        // === Blockchain Development ===
+        "juanblanco.solidity",
+        "tintinweb.solidity-visual-auditor",
+        "nomicfoundation.hardhat-solidity",
+        
+        // === Cloud & AWS ===
+        "amazonwebservices.aws-toolkit-vscode",
         
         // === Markdown & Documentation ===
         "yzhang.markdown-all-in-one",

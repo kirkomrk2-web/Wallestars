@@ -64,7 +64,18 @@ RUN pip3 install --no-cache-dir \
     cryptography \
     pycryptodome \
     keyring \
-    secretstorage
+    secretstorage \
+    # KeePassXC Python integration
+    pykeepass \
+    # AI/ML libraries
+    openai \
+    anthropic \
+    # Data processing
+    pandas \
+    numpy \
+    # Jupyter
+    jupyter \
+    jupyterlab
 
 # === Node.js global packages ===
 RUN npm install -g \
