@@ -1,0 +1,170 @@
+{
+  "name": "Wallestars Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bullseye",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "nodeGypDependencies": true,
+      "nvmVersion": "latest"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11",
+      "installTools": true,
+      "installJupyterlab": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest",
+      "ppa": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": true,
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "username": "vscode",
+      "userUid": "1000",
+      "userGid": "1000"
+    },
+    "ghcr.io/devcontainers/features/postgres:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "minikube": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "saoudrizwan.claude-dev",
+        "continue.continue",
+        "github.copilot",
+        "github.copilot-chat",
+        "github.copilot-labs",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "dsznajder.es7-react-js-snippets",
+        "xabikos.javascriptsnippets",
+        "ms-vscode.vscode-typescript-next",
+        "burkeholland.simple-react-snippets",
+        "formulahendry.auto-rename-tag",
+        "formulahendry.auto-close-tag",
+        "zignd.html-css-class-completion",
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+        "donjayamanne.githistory",
+        "mhutchie.git-graph",
+        "github.vscode-github-actions",
+        "orta.vscode-jest",
+        "firsttris.vscode-jest-runner",
+        "streetsidesoftware.code-spell-checker",
+        "usernamehw.errorlens",
+        "sonarsource.sonarlint-vscode",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "humao.rest-client",
+        "rangav.vscode-thunder-client",
+        "supabase.supabase-vscode",
+        "hashicorp.terraform",
+        "redhat.vscode-yaml",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "christian-kohler.path-intellisense",
+        "visualstudioexptteam.vscodeintellicode",
+        "gruntfuggly.todo-tree",
+        "aaron-bond.better-comments",
+        "wayou.vscode-todo-highlight",
+        "editorconfig.editorconfig",
+        "mikestead.dotenv",
+        "yzhang.markdown-all-in-one",
+        "davidanson.vscode-markdownlint",
+        "bierner.markdown-preview-github-styles",
+        "bierner.markdown-mermaid",
+        "pkief.material-icon-theme",
+        "github.github-vscode-theme",
+        "ms-azuretools.vscode-docker",
+        "ritwickdey.liveserver",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "streetsidesoftware.code-spell-checker-bulgarian"
+      ],
+      
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit",
+          "source.organizeImports": "explicit"
+        },
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 1000,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "git.autofetch": true,
+        "git.enableSmartCommit": true,
+        "gitlens.codeLens.enabled": true,
+        "claude-dev.apiKey": "${CLAUDE_API_KEY}",
+        "claude-dev.model": "claude-sonnet-4-20250514",
+        "github.copilot.enable": {
+          "*": true,
+          "yaml": true,
+          "markdown": true,
+          "json": true
+        },
+        "supabase.projectUrl": "${SUPABASE_URL}",
+        "supabase.anonKey": "${SUPABASE_KEY}",
+        "workbench.colorTheme": "GitHub Dark Default",
+        "workbench.iconTheme": "material-icon-theme"
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 5000, 5678, 8000, 8080, 9229, 54321],
+  
+  "portsAttributes": {
+    "3000": {"label": "Frontend", "onAutoForward": "notify"},
+    "5000": {"label": "Backend API", "onAutoForward": "notify"},
+    "5678": {"label": "n8n", "onAutoForward": "openBrowser"},
+    "8000": {"label": "Python", "onAutoForward": "silent"},
+    "54321": {"label": "Supabase Studio", "onAutoForward": "openBrowser"}
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+  
+  "containerEnv": {
+    "TZ": "Europe/Sofia",
+    "NODE_ENV": "development"
+  },
+  
+  "remoteUser": "vscode",
+  
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly,type=bind,consistency=cached",
+    "source=wallestars-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+  
+  "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"]
+}
