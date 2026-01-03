@@ -3,7 +3,7 @@
 ## Инструкции за Anthropic Console
 
 Копирайте текста по-долу и го използвайте в Anthropic Prompt Generator Workbench:  
-https://console.anthropic.com/workbench/608d2492-ecfd-433a-ac13-84bc195999d5
+https://console.anthropic.com/workbench/
 
 ---
 

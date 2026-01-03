@@ -14,7 +14,7 @@ import {
 export default function PromptGenerator() {
   const [copied, setCopied] = useState(false);
   const [copiedBg, setCopiedBg] = useState(false);
-  const [language, setLanguage] = useState('bg');
+  const [language, setLanguage] = useState('en');
 
   const promptContentEn = `# Prompt for Anthropic Console: Spark Visual App Generator
 
