@@ -13,9 +13,21 @@
 
 *Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
+[Features](#-features) • [Quick Launch](#-installation--launch) • [Documentation](#-documentation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
 
 </div>
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| 🚀 [**LAUNCH_GUIDE.md**](LAUNCH_GUIDE.md) | **Complete setup and launch instructions** |
+| ✅ [**PRE_LAUNCH_CHECKLIST.md**](PRE_LAUNCH_CHECKLIST.md) | **Step-by-step checklist before launching** |
+| 🔧 [**TROUBLESHOOTING.md**](TROUBLESHOOTING.md) | **Solutions to common issues** |
+| 🔌 [MCP_SETUP.md](MCP_SETUP.md) | Model Context Protocol integration |
+| ⚡ [QUICKSTART.md](QUICKSTART.md) | Quick reference guide |
+| 🏗️ [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture details |
+| 📝 [PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md) | Prompt generator usage |
 
 ---
 

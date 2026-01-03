@@ -28,11 +28,15 @@ app.use(express.static('dist'));
 
 // Health check
 app.get('/api/health', (req, res) => {
+  const hasValidApiKey = process.env.ANTHROPIC_API_KEY && 
+                         process.env.ANTHROPIC_API_KEY !== 'your_api_key_here' &&
+                         process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-');
+  
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
-      claude: !!process.env.ANTHROPIC_API_KEY,
+      claude: hasValidApiKey,
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
       android: process.env.ENABLE_ANDROID === 'true'
     }
@@ -59,6 +63,10 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
+  const hasValidApiKey = process.env.ANTHROPIC_API_KEY && 
+                         process.env.ANTHROPIC_API_KEY !== 'your_api_key_here' &&
+                         process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-');
+  
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
@@ -68,12 +76,20 @@ httpServer.listen(PORT, () => {
 ║   WebSocket ready on: ws://localhost:${PORT}          ║
 ║                                                       ║
 ║   Services Status:                                    ║
-║   ${process.env.ANTHROPIC_API_KEY ? '✅' : '❌'} Claude API                                ║
+║   ${hasValidApiKey ? '✅' : '❌'} Claude API                                ║
 ║   ${process.env.ENABLE_COMPUTER_USE === 'true' ? '✅' : '❌'} Computer Use (Linux)                     ║
 ║   ${process.env.ENABLE_ANDROID === 'true' ? '✅' : '❌'} Android Control                            ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
+  
+  if (!hasValidApiKey) {
+    console.log(`
+⚠️  WARNING: Claude API key not configured!
+   Edit your .env file and add a valid API key.
+   Get one at: https://console.anthropic.com
+`);
+  }
 });
 
 export { io };
