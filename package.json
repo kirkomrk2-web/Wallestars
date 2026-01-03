@@ -24,14 +24,10 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.1",
     "express": "^4.18.2",
-    "ws": "^8.16.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "axios": "^1.6.5",
-    "robot-js": "^0.6.0",
     "screenshot-desktop": "^1.15.0",
-    "node-ssh": "^13.1.0",
-    "adbkit": "^2.11.3",
     "socket.io": "^4.6.1",
     "socket.io-client": "^4.6.1"
   },
