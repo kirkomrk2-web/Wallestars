@@ -238,7 +238,7 @@ project-output/
 ║                                                                ║
 ║  Phase 2: Implementation                          [████░░░░]  50%  ║
 ║    ├─ Task 4: Core Implementation A               [COMPLETED] ║
-║    ├─ Task 5: Core Implementation B               [PROGRESS]  ║
+║    ├─ Task 5: Core Implementation B               [IN_PROGRESS]  ║
 ║    └─ Task 6: Feature Implementation              [WAITING]   ║
 ║                                                                ║
 ║  Phase 3: Testing & Deployment                    [░░░░░░░░]   0%  ║

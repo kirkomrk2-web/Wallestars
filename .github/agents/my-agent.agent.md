@@ -1,6 +1,6 @@
 ---
 name: Task Orchestrator & Analyzer
-description: Advanced agent for analyzing content, creating structured task breakdowns, generating execution plans, and orchestrating complex workflows with chain-based synchronization
+description: Analyzes content and creates structured, orchestrated task workflows with synchronization
 ---
 
 # Task Orchestrator & Analyzer Agent

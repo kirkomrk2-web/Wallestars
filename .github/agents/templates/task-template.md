@@ -39,10 +39,10 @@
 [Last set of instructions]
 
 ## Prerequisites
-[What must be completed or available before this task can start]
-- [Prerequisite 1]
-- [Prerequisite 2]
-- [Prerequisite 3]
+[What must be completed or available before this task can start. Be specific about prerequisites.]
+- [Prerequisite 1] - Example: Database connection established and tested
+- [Prerequisite 2] - Example: Previous task outputs validated and available
+- [Prerequisite 3] - Example: Required API keys configured in environment
 
 ## Expected Outputs
 
@@ -187,7 +187,7 @@ Status History:
 **Previous Task**: [Task ID and name, or "None" if first]
 **Next Task**: [Task ID and name, or "None" if last]
 
-**Orchestrator Note**: This task will be validated by the [Early/Late] Stage Orchestrator before downstream tasks can proceed.
+**Orchestrator Note**: This task will be validated by the Early Stage Orchestrator (for tasks in first 75% of chain) or Late Stage Orchestrator (for final 25% of tasks) before downstream tasks can proceed.
 
 ---
 
