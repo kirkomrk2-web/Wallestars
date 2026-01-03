@@ -1,12 +1,24 @@
 {
-  "name": "Wallestars - Full Stack AI Platform",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "name": "Wallestars - Full Stack AI Platform with Claude Code",
   
-  // Допълнителен custom image build (optional)
-  // "build": {
-  //   "dockerfile": "Dockerfile",
-  //   "context": ".."
-  // },
+  // Claude Code Integration with Enhanced Security
+  "build": {
+    "dockerfile": "Dockerfile.claude",
+    "context": "..",
+    "args": {
+      "TZ": "Europe/Sofia",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2",
+      "ZSH_IN_DOCKER_VERSION": "1.2.0",
+      "BASE_IMAGE": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm"
+    }
+  },
+  
+  // Network security capabilities for firewall
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW"
+  ],
 
   // 🎯 Features - Автоматична инсталация на инструменти
   "features": {
@@ -95,9 +107,10 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        // === AI Assistants & Productivity ===
+        // === AI Assistants & Claude Code ===
         "github.copilot",
         "github.copilot-chat",
+        "anthropic.claude-code",
         "saoudrizwan.claude-dev",
         "continue.continue",
         
@@ -235,33 +248,13 @@
         
         // === Security ===
         
+        // === Claude Code Settings ===
+        "claude-code.apiKey": "${ANTHROPIC_API_KEY}",
+        "claude-code.model": "claude-sonnet-4-20250514",
+        "claude-code.dangerouslySkipPermissions": false,
+        
         // === Prettier ===
-        "prettiClaude Dev (Cline) Settings ===
-        "claude-dev.apiKey": "${ANTHROPIC_API_KEY}",
-        "claude-dev.model": "claude-sonnet-4-20250514",
-        "claude-dev.maxTokens": 1000000,
-        "claude-dev.temperature": 0.7,
-        
-        // === Continue AI Settings ===
-        "continue.telemetryEnabled": false,
-        "continue.enableTabAutocomplete": true,
-        
-        // === GitHub Copilot ===
-        "github.copilot.enable": {
-          "*": true,
-          "yaml": true,
-          "plaintext": false,
-          "markdown": true,
-          "javascript": true,
-          "typescript": true,
-          "python": true
-        },
-        
-        // === Theme ===
-        "workbench.colorTheme": "GitHub Dark Default",
-        "workbench.iconTheme": "material-icon-theme",
-        
-        // === er.singleQuote": true,
+        "prettier.singleQuote": true,
         "prettier.trailingComma": "es5",
         "prettier.semi": true,
         "prettier.tabWidth": 2,
@@ -410,7 +403,26 @@
 
   // 🎯 Workspace Settings
   "workspaceFolder": "/workspaces/Wallestars",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Wallestars,type=bind,consistency=cached",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/Wallestars,type=bind,consistency=delegated",
+  
+  // 🔒 Claude Code Persistent Storage
+  "mounts": [
+    "source=claude-code-bashhistory,target=/commandhistory,type=volume",
+    "source=claude-code-config,target=/home/node/.claude,type=volume",
+    "source=wallestars-config,target=/home/node/.config/wallestars,type=volume"
+  ],
+  
+  // 🌐 Container Environment Variables
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "WALLESTARS_ENV": "development"
+  },
+  
+  // 🚀 Post-Start Command - Initialize Firewall
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "waitFor": "postStartCommand",
 
   // 💡 Features Configuration Details
   "overrideFeatureInstallOrder": [
@@ -422,10 +434,15 @@
 
   // 🔌 Capabilities
   "capAdd": [
-    "SYS_PTRACE"  // For debugging
+    "SYS_PTRACE",  // For debugging
+    "NET_ADMIN",   // For firewall management
+    "NET_RAW"      // For network operations
   ],
 
   "securityOpt": [
     "seccomp=unconfined"  // For advanced debugging
-  ]
+  ],
+  
+  // 👤 Remote User
+  "remoteUser": "node"
 }
