@@ -3,8 +3,6 @@
 # Wallestars Launch Script
 # This script automates the setup and launch process
 
-set -e  # Exit on error
-
 echo "╔═══════════════════════════════════════════════════════╗"
 echo "║                                                       ║"
 echo "║   🌟 WALLESTARS CONTROL CENTER - LAUNCHER 🌟         ║"
@@ -20,8 +18,9 @@ if ! command -v node &> /dev/null; then
     exit 1
 fi
 
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 20 ]; then
+# More robust Node version check
+NODE_VERSION=$(node -v | sed 's/v//' | cut -d'.' -f1 | grep -o '[0-9]*' | head -1)
+if [ ! -z "$NODE_VERSION" ] && [ "$NODE_VERSION" -lt 20 ]; then
     echo "⚠️  Node.js version is $NODE_VERSION. Version 20 or higher is recommended."
 fi
 echo "✅ Node.js $(node -v) detected"
@@ -37,8 +36,12 @@ echo "✅ npm $(npm -v) detected"
 if [ ! -d "node_modules" ]; then
     echo ""
     echo "📦 Installing dependencies..."
-    npm install
-    echo "✅ Dependencies installed"
+    if npm install; then
+        echo "✅ Dependencies installed"
+    else
+        echo "❌ Failed to install dependencies"
+        exit 1
+    fi
 else
     echo "✅ Dependencies already installed"
 fi
@@ -54,7 +57,11 @@ if [ ! -f ".env" ]; then
     echo "   File location: $(pwd)/.env"
     echo "   Get your API key from: https://console.anthropic.com"
     echo ""
-    read -p "Press Enter after you've added your API key, or Ctrl+C to exit..."
+    read -p "Press Enter after you've added your API key, or Ctrl+C to exit..." || {
+        echo ""
+        echo "Setup cancelled. Run this script again when ready."
+        exit 0
+    }
 else
     echo "✅ .env file exists"
 fi
@@ -65,7 +72,11 @@ if grep -q "your_api_key_here" .env; then
     echo "⚠️  WARNING: API key not configured in .env file!"
     echo "   The server will start, but Claude features won't work."
     echo ""
-    read -p "Continue anyway? (y/N): " -n 1 -r
+    read -p "Continue anyway? (y/N): " -n 1 -r || {
+        echo ""
+        echo "Setup cancelled."
+        exit 0
+    }
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Please edit .env and add your API key, then run this script again."

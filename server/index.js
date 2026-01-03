@@ -10,6 +10,13 @@ import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
 
+// Helper function to validate API key
+const isValidApiKey = (key) => {
+  return key && 
+         key !== 'your_api_key_here' && 
+         key.startsWith('sk-ant-');
+};
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -28,15 +35,11 @@ app.use(express.static('dist'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  const hasValidApiKey = process.env.ANTHROPIC_API_KEY && 
-                         process.env.ANTHROPIC_API_KEY !== 'your_api_key_here' &&
-                         process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-');
-  
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
-      claude: hasValidApiKey,
+      claude: isValidApiKey(process.env.ANTHROPIC_API_KEY),
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
       android: process.env.ENABLE_ANDROID === 'true'
     }
@@ -63,9 +66,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 httpServer.listen(PORT, () => {
-  const hasValidApiKey = process.env.ANTHROPIC_API_KEY && 
-                         process.env.ANTHROPIC_API_KEY !== 'your_api_key_here' &&
-                         process.env.ANTHROPIC_API_KEY.startsWith('sk-ant-');
+  const hasValidApiKey = isValidApiKey(process.env.ANTHROPIC_API_KEY);
   
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
