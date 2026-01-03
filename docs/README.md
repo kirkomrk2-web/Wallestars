@@ -6,21 +6,28 @@
 
 ### 📄 Налични ръководства:
 
-1. **[Azure Web Apps Deployment](./AZURE_DEPLOYMENT.md)**
+1. **🇧🇬 [Настройка на Български](./НАСТРОЙКА_BG.md)** ⭐ ЗАПОЧНЕТЕ ТУК!
+
+   - Къде да поставите `.env` файла
+   - Как да решите проблеми с портовете
+   - Пълна диагностика и troubleshooting
+   - Стъпка по стъпка инструкции
+
+2. **[Azure Web Apps Deployment](./AZURE_DEPLOYMENT.md)**
 
    - Конфигуриране на Azure Web App
    - GitHub Actions CI/CD setup
    - Environment variables
    - Troubleshooting
 
-2. **[Docker + VPS Deployment](./DOCKER_VPS_DEPLOYMENT.md)**
+3. **[Docker + VPS Deployment](./DOCKER_VPS_DEPLOYMENT.md)**
 
    - Docker контейнеризация
    - VPS/VMS Ubuntu Pro setup
    - Hostinger интеграция
    - Production best practices
 
-3. **[Architecture Diagrams](./ARCHITECTURE_DIAGRAMS.md)**
+4. **[Architecture Diagrams](./ARCHITECTURE_DIAGRAMS.md)**
    - Системна архитектура
    - Data flow диаграми
    - Security layers

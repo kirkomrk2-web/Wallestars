@@ -76,6 +76,16 @@
 
 ### Quick Start
 
+#### 🚀 One-Command Setup (Recommended)
+
+```bash
+git clone https://github.com/Wallesters-org/Wallestars.git
+cd Wallestars
+./start.sh  # Interactive setup wizard
+```
+
+#### 📝 Manual Setup
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/Wallesters-org/Wallestars.git
@@ -97,13 +107,20 @@
    ENABLE_COMPUTER_USE=true
    ENABLE_ANDROID=true
    ```
+   
+   > 🇧🇬 **За български потребители:** Пълно ръководство за настройка → [docs/НАСТРОЙКА_BG.md](./docs/НАСТРОЙКА_BG.md)
 
-4. **Start development server:**
+4. **Check ports (optional):**
+   ```bash
+   npm run check-ports  # Diagnose and fix port conflicts
+   ```
+
+5. **Start development server:**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser:**
+6. **Open your browser:**
    ```
    http://localhost:5173
    ```
