@@ -107,7 +107,7 @@ The configuration uses a custom Dockerfile (`Dockerfile.claude`) that includes:
 | 6379 | Redis Cache | Silent |
 | 8000 | Dev Server | Silent |
 | 8080 | Alternative HTTP Server | Silent |
-| 9229 | Node.js Debugger | - |
+| 9229 | Node.js Debugger | Silent |
 
 ## 📁 Volume Mounts
 
