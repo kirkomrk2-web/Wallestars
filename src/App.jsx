@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ClaudeChat from './pages/ClaudeChat';
 import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
+import QRScanner from './pages/QRScanner';
 import Settings from './pages/Settings';
 import { SocketProvider } from './context/SocketContext';
 
@@ -18,6 +19,7 @@ function App() {
     chat: <ClaudeChat />,
     computer: <ComputerControl />,
     android: <AndroidControl />,
+    qrscanner: <QRScanner />,
     settings: <Settings />
   };
 
