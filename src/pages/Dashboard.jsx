@@ -8,9 +8,11 @@ import {
   MessageSquare,
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Globe
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
+import PlatformLinks from '../components/PlatformLinks';
 
 export default function Dashboard() {
   const { connected, actionLogs } = useSocket();
@@ -128,6 +130,20 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* Platform Links */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="card"
+      >
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Globe className="w-5 h-5 text-primary-400" />
+          Connected Platforms
+        </h2>
+        <PlatformLinks />
+      </motion.div>
 
       {/* Quick actions & Recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
