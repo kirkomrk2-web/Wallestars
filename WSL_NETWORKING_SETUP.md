@@ -225,9 +225,11 @@ If you need to access Windows applications from WSL (e.g., Windows-hosted databa
 # Get Windows host IP
 export WINDOWS_HOST=$(ip route show | grep -i default | awk '{ print $3}')
 
-# Access Windows service (example: database server on port 3306)
-# Replace with your actual service and port
+# Access Windows service (examples)
+# Web service on port 8080:
 curl http://$WINDOWS_HOST:8080
+# Database on port 3306:
+# mysql -h $WINDOWS_HOST -P 3306 -u user -p
 ```
 
 ### From External Network (LAN)
