@@ -29,7 +29,9 @@ export default function ClaudeChat() {
         const parsed = JSON.parse(savedSessions);
         setSessions(parsed);
       } catch (error) {
-        console.error('Failed to load sessions:', error);
+        console.error('Failed to load sessions from localStorage:', error);
+        // Clear corrupted data
+        localStorage.removeItem('claudeSessions');
       }
     }
   }, []);
@@ -43,7 +45,7 @@ export default function ClaudeChat() {
 
   // Auto-save current session
   useEffect(() => {
-    if (currentSessionId && messages.length > 1) {
+    if (currentSessionId && messages.length > 1 && sessions.length > 0) {
       const session = sessions.find(s => s.id === currentSessionId);
       if (session) {
         setSessions(prev => prev.map(s => 
@@ -53,7 +55,7 @@ export default function ClaudeChat() {
         ));
       }
     }
-  }, [messages, currentSessionId]);
+  }, [messages, currentSessionId, sessions]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -140,9 +142,7 @@ export default function ClaudeChat() {
         : s
     ));
     setEditingSession(null);
-    if (currentSessionId === sessionId) {
-      // Keep the title and description updated in the current view
-    } else {
+    if (currentSessionId !== sessionId) {
       setSessionTitle('');
       setSessionDescription('');
     }
