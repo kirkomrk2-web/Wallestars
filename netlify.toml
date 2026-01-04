@@ -36,6 +36,8 @@
 [[headers]]
   for = "/api/*"
   [headers.values]
+    # Note: Update Access-Control-Allow-Origin to your specific domain in production
+    # For example: Access-Control-Allow-Origin = "https://yourdomain.com"
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"

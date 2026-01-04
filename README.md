@@ -222,7 +222,7 @@ The project is configured for easy deployment on Netlify:
 
 📚 **For detailed Netlify deployment instructions, see [NETLIFY_DEPLOYMENT.md](NETLIFY_DEPLOYMENT.md)**
 
-#### Quick Deploy
+**Quick Deploy:** Click the button above for one-click deployment to Netlify.
 
 #### Manual Deployment
 
