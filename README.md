@@ -218,9 +218,11 @@ npm start            # Start production server
 
 The project is configured for easy deployment on Netlify:
 
-#### Quick Deploy
-
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Wallesters-org/Wallestars)
+
+📚 **For detailed Netlify deployment instructions, see [NETLIFY_DEPLOYMENT.md](NETLIFY_DEPLOYMENT.md)**
+
+#### Quick Deploy
 
 #### Manual Deployment
 
