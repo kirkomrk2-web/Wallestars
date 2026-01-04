@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   Link as LinkIcon,
   Upload,
-  Search,
   Download,
   QrCode,
   CheckCircle,
-  AlertCircle,
   Sparkles,
-  GitBranch,
   Play,
   RefreshCw
 } from 'lucide-react';
@@ -24,6 +21,15 @@ export default function AnalysisApp() {
   const [decisions, setDecisions] = useState({});
   const [loading, setLoading] = useState(false);
   const [qrData, setQrData] = useState(null);
+  const [error, setError] = useState('');
+
+  const PHASES = ['input', 'analyzing', 'interactive', 'export'];
+
+  const isPhaseComplete = (phaseToCheck) => {
+    const currentIndex = PHASES.indexOf(phase);
+    const checkIndex = PHASES.indexOf(phaseToCheck);
+    return currentIndex > checkIndex;
+  };
 
   const inputTypes = [
     { id: 'url', name: 'URL/Link', icon: LinkIcon },
@@ -34,12 +40,36 @@ export default function AnalysisApp() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
+      // Validate file type
+      const allowedTypes = ['.md', '.txt', '.json', '.yaml', '.yml'];
+      const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
+      
+      if (!allowedTypes.includes(fileExtension)) {
+        setError(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`);
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        setError('File size exceeds 5MB limit');
+        return;
+      }
+
       setFile(selectedFile);
+      setError('');
+      
       const reader = new FileReader();
       reader.onload = (event) => {
         setInputValue(event.target.result);
       };
-      reader.readAsText(selectedFile);
+      reader.onerror = () => {
+        setError('Failed to read file. Please try again.');
+      };
+      try {
+        reader.readAsText(selectedFile);
+      } catch (err) {
+        setError('Error reading file: ' + err.message);
+      }
     }
   };
 
@@ -88,7 +118,7 @@ export default function AnalysisApp() {
       setPhase('interactive');
     } catch (error) {
       console.error('Analysis error:', error);
-      alert('Error analyzing content. Please try again.');
+      setError('Error analyzing content. Please try again.');
       setPhase('input');
     } finally {
       setLoading(false);
@@ -183,7 +213,6 @@ metadata:
     
     // In production, this would use a real QR code library
     setQrData(analysisUrl);
-    alert(`QR Code generated for: ${analysisUrl}\n\nIn production, this would display an actual QR code.`);
   };
 
   const resetApp = () => {
@@ -193,6 +222,7 @@ metadata:
     setAnalysisData(null);
     setDecisions({});
     setQrData(null);
+    setError('');
   };
 
   return (
@@ -229,21 +259,20 @@ metadata:
         className="card"
       >
         <div className="flex items-center justify-between">
-          {['input', 'analyzing', 'interactive', 'export'].map((p, index) => (
+          {PHASES.map((p, index) => (
             <div key={p} className="flex items-center">
               <div className={`
                 flex items-center justify-center w-10 h-10 rounded-full
                 ${phase === p ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white' :
-                  ['input', 'analyzing', 'interactive'].indexOf(phase) > ['input', 'analyzing', 'interactive'].indexOf(p)
-                    ? 'bg-green-500 text-white' : 'bg-dark-700 text-dark-400'}
+                  isPhaseComplete(p) ? 'bg-green-500 text-white' : 'bg-dark-700 text-dark-400'}
               `}>
-                {['input', 'analyzing', 'interactive'].indexOf(phase) > ['input', 'analyzing', 'interactive'].indexOf(p) ?
+                {isPhaseComplete(p) ?
                   <CheckCircle className="w-5 h-5" /> :
                   <span>{index + 1}</span>
                 }
               </div>
               <span className="ml-2 text-sm capitalize text-dark-300">{p}</span>
-              {index < 3 && <div className="w-12 h-0.5 bg-dark-700 mx-4" />}
+              {index < PHASES.length - 1 && <div className="w-12 h-0.5 bg-dark-700 mx-4" />}
             </div>
           ))}
         </div>
@@ -332,6 +361,13 @@ metadata:
                     rows={10}
                     className="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:border-primary-500 resize-none"
                   />
+                </div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                  {error}
                 </div>
               )}
 
@@ -528,9 +564,17 @@ metadata:
                 Generate QR Code
               </motion.button>
               {qrData && (
-                <p className="mt-4 text-sm text-dark-400 text-center">
-                  QR Code URL: {qrData}
-                </p>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-4 glass-effect rounded-lg"
+                >
+                  <p className="text-sm text-dark-400 mb-2">QR Code URL generated:</p>
+                  <p className="text-sm text-primary-400 break-all">{qrData}</p>
+                  <p className="text-xs text-dark-500 mt-2">
+                    In production, a visual QR code would be displayed here
+                  </p>
+                </motion.div>
               )}
             </div>
 
