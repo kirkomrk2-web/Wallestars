@@ -97,8 +97,13 @@ The repository includes a `.mcp.json` file with the recommended configuration. T
          "env": {
            "ANTHROPIC_API_KEY": "sk-ant-your-key-here",
            "PORT": "3000",
+           "NODE_ENV": "production",
            "ENABLE_COMPUTER_USE": "true",
-           "ENABLE_ANDROID": "false"
+           "ENABLE_ANDROID": "false",
+           "SCREENSHOT_INTERVAL": "2000",
+           "ADB_HOST": "localhost",
+           "ADB_PORT": "5037",
+           "WS_PORT": "3001"
          }
        }
      }
