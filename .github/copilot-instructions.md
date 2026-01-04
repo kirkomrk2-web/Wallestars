@@ -828,5 +828,5 @@ Closes #123
 
 ---
 
-**Last Updated**: 2026-01-04  
+**Last Updated**: January 2026  
 **Maintained by**: Wallestars Development Team
