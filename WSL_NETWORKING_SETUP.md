@@ -225,7 +225,7 @@ If you need to access Windows applications from WSL (e.g., Windows-hosted databa
 # Get Windows host IP
 export WINDOWS_HOST=$(ip route show | grep -i default | awk '{ print $3}')
 
-# Access Windows service (example: SQL Server on port 1433)
+# Access Windows service (example: MySQL on port 3306)
 mysql -h $WINDOWS_HOST -P 3306 -u user -p
 ```
 
@@ -458,7 +458,7 @@ wsl --import Ubuntu C:\WSL\Ubuntu C:\backups\ubuntu-backup.tar
 ## 📚 Additional Resources
 
 ### Official Documentation
-- [Microsoft WSL Networking Documentation](https://learn.microsoft.com/en-us/windows/wsl/networking)
+- [Microsoft WSL Networking Documentation](https://learn.microsoft.com/en-us/windows/wsl/networking) ([Bulgarian version](https://learn.microsoft.com/bg-bg/windows/wsl/networking))
 - [WSL Best Practices Guide](https://learn.microsoft.com/en-us/windows/wsl/setup/environment)
 - [WSL Configuration Settings](https://learn.microsoft.com/en-us/windows/wsl/wsl-config)
 
