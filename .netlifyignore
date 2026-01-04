@@ -23,11 +23,7 @@ yarn-error.log*
 .git
 .gitignore
 
-# Documentation (optional, remove if you want docs in deployment)
-*.md
-!README.md
-
-# MCP setup scripts (not needed in deployment)
+# MCP setup scripts and documentation (not needed in deployment)
 setup-mcp.sh
 setup-mcp.ps1
 .mcp.json
@@ -36,6 +32,9 @@ HOW_TO_USE_PROMPT_GENERATOR.md
 PROMPT_GENERATOR_DOCS.md
 QUICKSTART.md
 ARCHITECTURE.md
+
+# Keep important deployment documentation
+# README.md and NETLIFY_DEPLOYMENT.md are included automatically
 
 # Development container
 .devcontainer
