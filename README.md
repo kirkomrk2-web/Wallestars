@@ -214,7 +214,58 @@ npm start            # Start production server
 
 ## 🚢 Deployment
 
-The project includes GitHub Actions workflow for Azure Web Apps deployment.
+### Netlify Deployment
+
+The project is configured for easy deployment on Netlify:
+
+#### Quick Deploy
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Wallesters-org/Wallestars)
+
+#### Manual Deployment
+
+1. **Fork or clone this repository**
+
+2. **Connect to Netlify:**
+   - Sign up or log in to [Netlify](https://netlify.com)
+   - Click "Add new site" → "Import an existing project"
+   - Connect your Git repository
+
+3. **Configure build settings:**
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+   - These are already configured in `netlify.toml`
+
+4. **Set environment variables:**
+   - Go to Site settings → Environment variables
+   - Add the following:
+     ```
+     ANTHROPIC_API_KEY=your_api_key_here
+     NODE_ENV=production
+     ```
+
+5. **Deploy:**
+   - Click "Deploy site"
+   - Your site will be live at `https://your-site-name.netlify.app`
+
+#### Netlify CLI Deployment
+
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Login to Netlify
+netlify login
+
+# Deploy to Netlify
+netlify deploy --prod
+```
+
+**Note:** For full functionality including Computer Use and Android Control features, consider using a VPS or dedicated server deployment, as these features require system-level access that is not available on Netlify's serverless platform.
+
+### Azure Web Apps Deployment
+
+The project also includes GitHub Actions workflow for Azure Web Apps deployment.
 
 ---
 
