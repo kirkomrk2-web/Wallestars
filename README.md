@@ -8,12 +8,14 @@
 [![Claude AI](https://img.shields.io/badge/Claude-Sonnet_4.5-8b5cf6?style=flat-square)](https://anthropic.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-orange?style=flat-square)](MCP_SETUP.md)
+[![VPS Ready](https://img.shields.io/badge/Hostinger-VPS_Ready-purple?style=flat-square)](DEPLOYMENT_HOSTINGER.md)
+[![n8n](https://img.shields.io/badge/n8n-Integration-pink?style=flat-square)](N8N_INTEGRATION.md)
 
 **Professional platform for Claude AI automation on Linux and Android**
 
-*Beautiful real-time visualization • Computer Use • Device Control • MCP Support*
+*Beautiful real-time visualization • Computer Use • Device Control • MCP Support • VPS Ready • n8n Integration*
 
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [MCP Setup](#-mcp-model-context-protocol)
+[Features](#-features) • [Installation](#-installation) • [VPS Deployment](#-deployment) • [n8n Integration](#-n8n-workflow-automation) • [MCP Setup](#-mcp-model-context-protocol)
 
 </div>
 
@@ -294,6 +296,35 @@ Integrate Wallestars with **n8n** to create powerful automation workflows:
 - **Claude Webhook**: Expose Claude AI via webhook for external apps
 - **System Monitor**: Check system health → Alert via Slack/Email
 - **Automation Chain**: Click → Type → Wait → Verify with AI
+
+---
+
+## 📚 Documentation
+
+### Quick Start
+- **[QUICKSTART.md](QUICKSTART.md)** - 5-minute local setup
+- **[QUICKSTART_VPS.md](QUICKSTART_VPS.md)** - VPS deployment quick reference
+
+### Deployment
+- **[DEPLOYMENT_HOSTINGER.md](DEPLOYMENT_HOSTINGER.md)** - Complete VPS deployment guide
+- **[INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)** - Full integration overview (Claude + VPS + n8n)
+- **[docker-compose.yml](docker-compose.yml)** - Docker deployment
+
+### Integration & Automation
+- **[N8N_INTEGRATION.md](N8N_INTEGRATION.md)** - n8n workflow automation
+- **[MCP_SETUP.md](MCP_SETUP.md)** - Claude Desktop integration
+- **[MCP_INTEGRATION_SUMMARY.md](MCP_INTEGRATION_SUMMARY.md)** - MCP features overview
+
+### Architecture & Development
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
+- **[PROMPT_GENERATOR_DOCS.md](PROMPT_GENERATOR_DOCS.md)** - Prompt generator guide
+- **[HOW_TO_USE_PROMPT_GENERATOR.md](HOW_TO_USE_PROMPT_GENERATOR.md)** - Usage instructions
+
+### Configuration Examples
+- **[.env.example](.env.example)** - Environment variables template
+- **[claude_desktop_config.json.example](claude_desktop_config.json.example)** - Claude Desktop config
+- **[n8n-workflows.json](n8n-workflows.json)** - Ready-to-use n8n workflows
+- **[nginx/wallestars.conf](nginx/wallestars.conf)** - Nginx configuration
 
 ---
 
