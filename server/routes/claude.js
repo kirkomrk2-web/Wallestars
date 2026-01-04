@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import { claudeLimiter, visionLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 const anthropic = new Anthropic({
@@ -7,7 +8,7 @@ const anthropic = new Anthropic({
 });
 
 // Chat with Claude
-router.post('/chat', async (req, res) => {
+router.post('/chat', claudeLimiter, async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
 
@@ -41,7 +42,7 @@ router.post('/chat', async (req, res) => {
 });
 
 // Claude Computer Use - Full automation
-router.post('/computer-use', async (req, res) => {
+router.post('/computer-use', claudeLimiter, async (req, res) => {
   try {
     const { task, screenshot } = req.body;
 
@@ -120,7 +121,7 @@ router.get('/capabilities', (req, res) => {
 });
 
 // Vision API - Analyze images
-router.post('/vision', async (req, res) => {
+router.post('/vision', visionLimiter, async (req, res) => {
   try {
     const { image, prompt } = req.body;
 
