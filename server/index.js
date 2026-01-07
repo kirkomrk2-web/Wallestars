@@ -12,12 +12,27 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+// Configure allowed origins for CORS
+const getAllowedOrigins = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.FRONTEND_URL;
+  }
+  // In development, allow localhost and network access
+  return [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    // Allow any local network IP for development
+    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/,
+    /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}:5173$/,
+    /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}:5173$/
+  ];
+};
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NODE_ENV === 'production'
-      ? process.env.FRONTEND_URL
-      : 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: getAllowedOrigins(),
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -57,15 +72,16 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, HOST, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
 ║   🌟 WALLESTARS CONTROL CENTER 🌟                    ║
 ║                                                       ║
-║   Server running on: http://localhost:${PORT}         ║
-║   WebSocket ready on: ws://localhost:${PORT}          ║
+║   Server running on: http://${HOST}:${PORT}            ║
+║   WebSocket ready on: ws://${HOST}:${PORT}             ║
 ║                                                       ║
 ║   Services Status:                                    ║
 ║   ${process.env.ANTHROPIC_API_KEY ? '✅' : '❌'} Claude API                                ║
