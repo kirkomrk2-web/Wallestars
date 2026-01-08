@@ -11,7 +11,15 @@ import {
   CheckCircle,
   Globe,
   ArrowUpRight,
-  Sparkles
+  Sparkles,
+  Users,
+  Mail,
+  Video,
+  FileText,
+  Calendar,
+  Cloud,
+  Shield,
+  ExternalLink
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import PlatformLinks from '../components/PlatformLinks';
@@ -294,11 +302,144 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* System Status - Enhanced */}
+      {/* Microsoft 365 Integration - New Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
+        className="card-ultra"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Cloud className="w-5 h-5 sm:w-6 sm:h-6 text-primary-400" />
+            <span className="text-gradient-primary">Microsoft 365 Business</span>
+          </h2>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <Users className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-semibold text-emerald-400">2 / 25 Licenses Used</span>
+          </div>
+        </div>
+
+        {/* License Usage Info */}
+        <div className="mb-6 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="font-semibold text-blue-400 mb-1">23 Available Licenses</h3>
+              <p className="text-sm text-dark-400">
+                Your Microsoft 365 Business plan includes 25 licenses with full access to all apps and services. 
+                Currently only 2 licenses are active. Invite more team members to maximize your subscription value.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Microsoft 365 Apps Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <M365AppCard
+            icon={Mail}
+            title="Outlook"
+            description="Professional email & calendar"
+            color="from-blue-500 via-blue-600 to-cyan-600"
+            link="https://outlook.office.com"
+            delay={0}
+          />
+          <M365AppCard
+            icon={Video}
+            title="Teams"
+            description="Chat, meetings & collaboration"
+            color="from-purple-500 via-purple-600 to-indigo-600"
+            link="https://teams.microsoft.com"
+            delay={0.1}
+          />
+          <M365AppCard
+            icon={FileText}
+            title="Word, Excel, PowerPoint"
+            description="Office productivity suite"
+            color="from-amber-500 via-orange-600 to-red-600"
+            link="https://office.com"
+            delay={0.2}
+          />
+          <M365AppCard
+            icon={Cloud}
+            title="OneDrive"
+            description="1TB cloud storage per user"
+            color="from-cyan-500 via-blue-600 to-blue-700"
+            link="https://onedrive.live.com"
+            delay={0.3}
+          />
+          <M365AppCard
+            icon={Calendar}
+            title="Bookings"
+            description="Appointment scheduling"
+            color="from-emerald-500 via-teal-600 to-cyan-600"
+            link="https://outlook.office.com/bookings"
+            delay={0.4}
+          />
+          <M365AppCard
+            icon={Shield}
+            title="Admin Center"
+            description="Manage users & licenses"
+            color="from-rose-500 via-pink-600 to-purple-600"
+            link="https://admin.microsoft.com"
+            delay={0.5}
+          />
+        </div>
+
+        {/* Setup Instructions */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary-400" />
+            Quick Setup Guide
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SetupStep
+              number="1"
+              title="Add Users"
+              description="Go to Admin Center → Users → Active users → Add user. Assign licenses to new team members."
+              link="https://admin.microsoft.com/Adminportal/Home#/users"
+            />
+            <SetupStep
+              number="2"
+              title="Configure Teams"
+              description="Set up channels, enable guest access, and configure meeting policies in Teams admin center."
+              link="https://admin.teams.microsoft.com"
+            />
+            <SetupStep
+              number="3"
+              title="Setup Email"
+              description="Configure custom domain for professional email addresses in Exchange admin center."
+              link="https://admin.exchange.microsoft.com"
+            />
+            <SetupStep
+              number="4"
+              title="Security Settings"
+              description="Enable MFA, conditional access, and data loss prevention in Security & Compliance center."
+              link="https://security.microsoft.com"
+            />
+          </div>
+        </div>
+
+        {/* Quick Action Button */}
+        <motion.a
+          href="https://admin.microsoft.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 btn-primary"
+        >
+          <Cloud className="w-5 h-5" />
+          Open Microsoft 365 Admin Center
+          <ExternalLink className="w-4 h-4" />
+        </motion.a>
+      </motion.div>
+
+      {/* System Status - Enhanced */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
         className="card-ultra"
       >
         <h2 className="text-xl sm:text-2xl font-bold mb-6 flex items-center gap-2">
@@ -398,5 +539,72 @@ function StatusIndicator({ label, status, isOnline, delay }) {
         {status}
       </p>
     </motion.div>
+  );
+}
+
+function M365AppCard({ icon: Icon, title, description, color, link, delay }) {
+  return (
+    <motion.a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      className="glass-effect-hover p-4 rounded-xl group relative overflow-hidden"
+    >
+      {/* Hover glow */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="relative flex items-start gap-3">
+        <motion.div
+          whileHover={{ rotate: 360, scale: 1.1 }}
+          transition={{ duration: 0.5 }}
+          className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg border border-white/10`}
+        >
+          <Icon className="w-6 h-6 text-white" />
+        </motion.div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-sm group-hover:text-primary-400 transition-colors truncate">
+              {title}
+            </h3>
+            <ExternalLink className="w-3 h-3 text-dark-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+          </div>
+          <p className="text-xs text-dark-400">{description}</p>
+        </div>
+      </div>
+    </motion.a>
+  );
+}
+
+function SetupStep({ number, title, description, link }) {
+  return (
+    <motion.a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      whileHover={{ scale: 1.01 }}
+      className="glass-effect-hover p-4 rounded-xl group"
+    >
+      <div className="flex gap-3">
+        <div className="flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-primary-500/20 border border-primary-500/30 flex items-center justify-center">
+            <span className="text-sm font-bold text-primary-400">{number}</span>
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold text-sm group-hover:text-primary-400 transition-colors">
+              {title}
+            </h4>
+            <ExternalLink className="w-3 h-3 text-dark-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <p className="text-xs text-dark-400">{description}</p>
+        </div>
+      </div>
+    </motion.a>
   );
 }
