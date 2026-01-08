@@ -19,7 +19,7 @@
   }
 
   .glass-ultra {
-    @apply bg-white/[0.02] backdrop-blur-2xl border-0.5 border-white/[0.05] shadow-2xl;
+    @apply bg-white/[0.02] backdrop-blur-2xl border border-white/[0.05] shadow-2xl;
   }
 
   .glow-effect {

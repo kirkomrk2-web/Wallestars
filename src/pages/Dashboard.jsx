@@ -123,7 +123,7 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        {/* Decorative element */}
+        {/* Decorative ambient glow - positioned in top-right corner extending beyond bounds for soft edge effect */}
         <motion.div
           animate={{ 
             scale: [1, 1.2, 1],
@@ -175,7 +175,7 @@ export default function Dashboard() {
                 <p className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</p>
               </div>
 
-              {/* Shimmer effect on hover */}
+              {/* Performance-optimized shimmer effect - only animates on hover */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                 <div className="shimmer absolute inset-0" />
               </div>

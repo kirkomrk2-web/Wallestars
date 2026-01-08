@@ -75,9 +75,6 @@ export default {
       backdropBlur: {
         xs: '2px',
       },
-      borderWidth: {
-        '0.5': '0.5px',
-      },
     },
   },
   plugins: [],
