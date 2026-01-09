@@ -131,7 +131,7 @@
 3. Добавяне на: `Copyright (c) 2026 Wallestars Team`
 4. Commit и push
 
-**Acceptence Criteria**:
+**Acceptance Criteria**:
 - ✅ LICENSE файл съществува
 - ✅ MIT лиценз текст присъства
 - ✅ Copyright информация попълнена
@@ -177,7 +177,7 @@
 3. Дефиниране на vulnerability reporting process
 4. Добавяне на security best practices
 
-**Acceptence Criteria**:
+**Acceptance Criteria**:
 - ✅ SECURITY.md файл създаден
 - ✅ Supported versions documented
 - ✅ Vulnerability reporting process ясен
@@ -238,7 +238,7 @@
 4. Добавяне на PR process
 5. Bilingual support (English/Bulgarian)
 
-**Acceptence Criteria**:
+**Acceptance Criteria**:
 - ✅ CONTRIBUTING.md файл създаден
 - ✅ Development setup documented
 - ✅ Coding standards ясни
@@ -303,7 +303,7 @@
 
 6. Създаване на `.github/workflows/test.yml` (optional в тази task)
 
-**Acceptence Criteria**:
+**Acceptance Criteria**:
 - ✅ Vitest и libraries инсталирани
 - ✅ Vitest config създаден
 - ✅ 3+ unit tests за React компоненти
@@ -365,7 +365,7 @@ jobs:
 4. Security audit job
 5. Добавяне на CI badges в README.md
 
-**Acceptence Criteria**:
+**Acceptance Criteria**:
 - ✅ CI workflow файл създаден
 - ✅ Tests се изпълняват автоматично
 - ✅ Build се верифицира
@@ -409,7 +409,7 @@ jobs:
 4. Създаване на PR template
 5. Конфигуриране на template chooser
 
-**Acceptence Criteria**:
+**Acceptance Criteria**:
 - ✅ Bug Report template created
 - ✅ Feature Request template created
 - ✅ Question template created
