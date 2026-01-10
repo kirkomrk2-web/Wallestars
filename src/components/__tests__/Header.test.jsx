@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Header from '../Header';
 
@@ -45,7 +45,7 @@ describe('Header Component', () => {
     );
     
     const menuButton = screen.getByRole('button');
-    menuButton.click();
+    fireEvent.click(menuButton);
     
     expect(toggleSidebar).toHaveBeenCalledTimes(1);
   });

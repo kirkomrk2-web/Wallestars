@@ -49,7 +49,7 @@ Before contributing, ensure you have:
 If you're new to open source or this project:
 
 1. Read the [README.md](README.md) to understand the project
-2. Check out the [ARCHITECTURE.md](ARCHITECTURE.md) for technical details
+2. Check out existing documentation for technical details
 3. Look for issues labeled `good first issue` or `help wanted`
 4. Ask questions in GitHub Discussions or issue comments
 
