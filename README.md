@@ -269,6 +269,12 @@ The project also includes GitHub Actions workflow for Azure Web Apps deployment.
 
 ---
 
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes and releases.
+
+---
+
 ## 📄 License
 
 MIT License
