@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { claudeRouter } from './routes/claude.js';
 import { computerUseRouter } from './routes/computerUse.js';
 import { androidRouter } from './routes/android.js';
+import { sseRouter } from './routes/sse.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -16,13 +17,17 @@ const io = new Server(httpServer, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
       ? process.env.FRONTEND_URL
-      : 'http://localhost:5173',
+      : ['http://localhost:5173', 'http://localhost:3006'],
     methods: ['GET', 'POST']
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins for MCP SuperAssistant
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.static('dist'));
 
@@ -34,7 +39,8 @@ app.get('/api/health', (req, res) => {
     services: {
       claude: !!process.env.ANTHROPIC_API_KEY,
       computerUse: process.env.ENABLE_COMPUTER_USE === 'true',
-      android: process.env.ENABLE_ANDROID === 'true'
+      android: process.env.ENABLE_ANDROID === 'true',
+      sse: true // SSE endpoint always available
     }
   });
 });
@@ -43,6 +49,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/claude', claudeRouter);
 app.use('/api/computer', computerUseRouter);
 app.use('/api/android', androidRouter);
+
+// SSE Route for MCP SuperAssistant
+app.use('/sse', sseRouter);
 
 // Socket.IO setup
 setupSocketHandlers(io);
@@ -62,15 +71,17 @@ httpServer.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
-║   🌟 WALLESTARS CONTROL CENTER 🌟                    ║
+║   🌟 WALLESTARS NEXUS CONTROL CENTER 🌟              ║
 ║                                                       ║
 ║   Server running on: http://localhost:${PORT}         ║
 ║   WebSocket ready on: ws://localhost:${PORT}          ║
+║   SSE endpoint on:    http://localhost:${PORT}/sse    ║
 ║                                                       ║
 ║   Services Status:                                    ║
 ║   ${process.env.ANTHROPIC_API_KEY ? '✅' : '❌'} Claude API                                ║
 ║   ${process.env.ENABLE_COMPUTER_USE === 'true' ? '✅' : '❌'} Computer Use (Linux)                     ║
 ║   ${process.env.ENABLE_ANDROID === 'true' ? '✅' : '❌'} Android Control                            ║
+║   ✅ SSE (MCP SuperAssistant)                         ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
