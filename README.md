@@ -318,6 +318,17 @@ Press a specific keyboard key.
 }
 ```
 
+#### POST `/computer/mousemove`
+Move mouse to specific coordinates without clicking.
+
+**Request Body:**
+```json
+{
+  "x": 1000,
+  "y": 500
+}
+```
+
 #### GET `/computer/info`
 Get system information.
 
@@ -439,6 +450,17 @@ Install an APK on the device.
 {
   "deviceId": "emulator-5554",
   "apkPath": "/path/to/app.apk"
+}
+```
+
+#### POST `/android/launch`
+Launch an application on the device.
+
+**Request Body:**
+```json
+{
+  "deviceId": "emulator-5554",
+  "package": "com.example.app"
 }
 ```
 
