@@ -16,6 +16,7 @@ Use this checklist when deploying Wallestars to production VPS.
 - [ ] Domain DNS configured and propagated
   - [ ] srv1201204.hstgr.cloud → 72.61.154.188
   - [ ] n8n.srv1201204.hstgr.cloud → 72.61.154.188
+  - [ ] GitHub Pages TXT record (if using custom domain) - see [DNS_CONFIGURATION.md](DNS_CONFIGURATION.md)
 
 ### Credentials Ready
 - [ ] Anthropic API key (production key, not dev)

@@ -267,6 +267,18 @@ netlify deploy --prod
 
 The project also includes GitHub Actions workflow for Azure Web Apps deployment.
 
+### Custom Domain & DNS Configuration
+
+If you're deploying with a custom domain or GitHub Pages:
+
+📚 **For DNS configuration details, see [DNS_CONFIGURATION.md](DNS_CONFIGURATION.md)**
+
+This guide includes:
+- GitHub Pages TXT record verification
+- Custom domain setup instructions
+- VPS DNS configuration
+- Verification and troubleshooting steps
+
 ---
 
 ## 🔒 Security
