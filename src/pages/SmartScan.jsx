@@ -246,12 +246,12 @@ export default function SmartScan() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Smart Scan</h1>
-          <p className="text-gray-400 mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Smart Scan</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1 sm:mt-2">
             AI-powered document scanning and data extraction
           </p>
         </div>
@@ -259,9 +259,9 @@ export default function SmartScan() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => fileInputRef.current?.click()}
-          className="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-lg font-medium hover:from-sky-600 hover:to-sky-700 transition-all flex items-center gap-2"
+          className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-lg font-medium hover:from-sky-600 hover:to-sky-700 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
         >
-          <Upload className="w-5 h-5" />
+          <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
           Upload Document
         </motion.button>
         <input
@@ -274,8 +274,8 @@ export default function SmartScan() {
       </div>
 
       {/* Progress Steps */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
-        <div className="flex items-center justify-between">
+      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 sm:p-4 md:p-6 border border-gray-700/50 overflow-x-auto">
+        <div className="flex items-center justify-between min-w-max sm:min-w-0">
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isActive = step.id === currentStep;
@@ -284,23 +284,23 @@ export default function SmartScan() {
             return (
               <div key={step.id} className="flex items-center flex-1">
                 <div className="flex flex-col items-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${
                     isActive 
                       ? 'bg-sky-500 text-white' 
                       : isPassed 
                       ? 'bg-green-500 text-white' 
                       : 'bg-gray-700 text-gray-400'
                   }`}>
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                   </div>
-                  <span className={`text-sm mt-2 ${
+                  <span className={`text-xs sm:text-sm mt-1 sm:mt-2 whitespace-nowrap ${
                     isActive ? 'text-sky-400' : isPassed ? 'text-green-400' : 'text-gray-500'
                   }`}>
                     {step.label}
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-1 mx-4 transition-all ${
+                  <div className={`flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 md:mx-4 transition-all ${
                     isPassed ? 'bg-green-500' : 'bg-gray-700'
                   }`} />
                 )}
@@ -311,15 +311,15 @@ export default function SmartScan() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Image Preview */}
         {imagePreview && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50"
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-gray-700/50"
           >
-            <h3 className="text-xl font-semibold text-white mb-4">Document Preview</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 md:mb-4">Document Preview</h3>
             <img 
               src={imagePreview} 
               alt="Document preview" 
@@ -363,10 +363,10 @@ export default function SmartScan() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50"
+            className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-gray-700/50"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Extracted Data</h3>
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="text-lg sm:text-xl font-semibold text-white">Extracted Data</h3>
               <button
                 onClick={() => setEditMode(!editMode)}
                 className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all flex items-center gap-2"
@@ -376,7 +376,7 @@ export default function SmartScan() {
               </button>
             </div>
 
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-3 md:space-y-4 max-h-64 sm:max-h-80 md:max-h-96 overflow-y-auto">
               {documentType === 'invoice' && (
                 <InvoiceDataDisplay 
                   data={editMode ? editedData : extractedData}
@@ -455,30 +455,30 @@ export default function SmartScan() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50"
+          className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-gray-700/50"
         >
-          <h3 className="text-xl font-semibold text-white mb-4">Export Document</h3>
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 md:mb-4">Export Document</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Export Format</label>
+              <label className="block text-xs sm:text-sm text-gray-400 mb-2">Export Format</label>
               <select
                 value={exportFormat}
                 onChange={(e) => setExportFormat(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none text-sm sm:text-base"
               >
                 <option value="delta-bg">Microsoft Delta BG (CSV)</option>
                 <option value="trz">Microsoft TRZ (XML)</option>
               </select>
             </div>
 
-            <div className="flex items-end">
+            <div>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={exportDocument}
                 disabled={processing}
-                className="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {processing ? (
                   <>
@@ -509,16 +509,16 @@ export default function SmartScan() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-20"
+          className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-20"
         >
-          <Camera className="w-24 h-24 text-gray-600 mb-4" />
-          <h3 className="text-2xl font-semibold text-gray-400 mb-2">No Document Selected</h3>
-          <p className="text-gray-500 mb-6">Upload a document to get started with Smart Scan</p>
+          <Camera className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-gray-600 mb-3 md:mb-4" />
+          <h3 className="text-xl sm:text-2xl font-semibold text-gray-400 mb-2 text-center px-4">No Document Selected</h3>
+          <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6 text-center px-4">Upload a document to get started with Smart Scan</p>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => fileInputRef.current?.click()}
-            className="px-8 py-4 bg-sky-500 text-white rounded-lg font-medium hover:bg-sky-600 transition-all"
+            className="px-6 sm:px-8 py-3 sm:py-4 bg-sky-500 text-white rounded-lg font-medium hover:bg-sky-600 transition-all text-sm sm:text-base"
           >
             Choose File
           </motion.button>
@@ -541,9 +541,9 @@ function InvoiceDataDisplay({ data, editMode, onUpdate }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* Basic Info */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
         <DataField 
           label="Invoice Number" 
           value={data.invoiceNumber}
@@ -573,8 +573,8 @@ function InvoiceDataDisplay({ data, editMode, onUpdate }) {
       </div>
 
       {/* Vendor Info */}
-      <div className="border-t border-gray-700 pt-4">
-        <h4 className="text-sm font-semibold text-gray-400 mb-2">Vendor Information</h4>
+      <div className="border-t border-gray-700 pt-3 md:pt-4">
+        <h4 className="text-xs sm:text-sm font-semibold text-gray-400 mb-2">Vendor Information</h4>
         <div className="space-y-2">
           <DataField 
             label="Vendor Name" 
@@ -599,18 +599,18 @@ function InvoiceDataDisplay({ data, editMode, onUpdate }) {
 
       {/* Items */}
       {data.items && data.items.length > 0 && (
-        <div className="border-t border-gray-700 pt-4">
-          <h4 className="text-sm font-semibold text-gray-400 mb-2">Items</h4>
-          <div className="space-y-3">
+        <div className="border-t border-gray-700 pt-3 md:pt-4">
+          <h4 className="text-xs sm:text-sm font-semibold text-gray-400 mb-2">Items</h4>
+          <div className="space-y-2 md:space-y-3">
             {data.items.map((item, idx) => (
-              <div key={idx} className="p-3 bg-gray-700/30 rounded-lg space-y-2">
+              <div key={idx} className="p-2 md:p-3 bg-gray-700/30 rounded-lg space-y-2">
                 <DataField 
                   label="Description" 
                   value={item.description}
                   editMode={editMode}
                   onChange={(v) => handleItemChange(idx, 'description', v)}
                 />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 md:gap-2">
                   <DataField 
                     label="Qty" 
                     value={item.quantity}
@@ -640,8 +640,8 @@ function InvoiceDataDisplay({ data, editMode, onUpdate }) {
       )}
 
       {/* Totals */}
-      <div className="border-t border-gray-700 pt-4">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="border-t border-gray-700 pt-3 md:pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <DataField 
             label="Subtotal" 
             value={data.subtotal}
@@ -687,10 +687,10 @@ function DataField({ label, value, editMode, onChange, type = 'text', className 
           type={type}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none text-sm"
+          className="w-full px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none text-xs sm:text-sm"
         />
       ) : (
-        <p className={`text-sm text-white ${className}`}>
+        <p className={`text-xs sm:text-sm text-white ${className}`}>
           {value || <span className="text-gray-600">N/A</span>}
         </p>
       )}
