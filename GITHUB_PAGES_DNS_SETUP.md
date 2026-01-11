@@ -1,7 +1,5 @@
 # GitHub Pages DNS Setup - Quick Guide
 
-# GitHub Pages DNS Setup - Quick Guide
-
 ## ⚠️ Important: About the Verification Subdomain
 
 **DO NOT try to access the verification subdomain directly!**

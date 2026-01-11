@@ -35,10 +35,11 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          # Note: If using custom domain (workmail.pro), the base path is not needed
-          # If using default GitHub Pages URL, uncomment the line below:
-          # VITE_BASE_PATH: /Wallestars/
+        # Note: With CNAME file present, GitHub Pages will use custom domain
+        # and base path will be '/' automatically. If you remove the CNAME file
+        # and want to use the default GitHub Pages URL, uncomment the line below:
+        # env:
+        #   VITE_BASE_PATH: /Wallestars/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
