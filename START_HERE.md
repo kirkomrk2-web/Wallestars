@@ -1,6 +1,6 @@
 # 🎯 Quick Start: How to Access Your Site
 
-> **Проблемът е решен! / The problem is fixed!**
+> ⚠️ **ВАЖНО / IMPORTANT**: Този PR НЕ deploy-ва нищо автоматично! Прочетете [WHAT_TO_EXPECT.md](WHAT_TO_EXPECT.md) / This PR does NOT deploy anything automatically! Read [WHAT_TO_EXPECT.md](WHAT_TO_EXPECT.md)
 
 ## 🇧🇬 За Български Потребители
 
@@ -22,7 +22,11 @@
 ✅ https://wallesters-org.github.io/Wallestars
 ```
 
-### 📖 Пълни Инструкции
+### ⚠️ Важно да Прочетете ПЪРВО
+
+**[WHAT_TO_EXPECT.md](WHAT_TO_EXPECT.md)** - Разяснява какво този PR прави и какво НЕ прави
+
+## 📖 Пълни Инструкции
 
 **Прочетете тук**: [SITE_ACCESS_INSTRUCTIONS.md](SITE_ACCESS_INSTRUCTIONS.md)
 
@@ -53,6 +57,10 @@ After setup, your site will be at:
 ✅ https://www.workmail.pro
 ✅ https://wallesters-org.github.io/Wallestars
 ```
+
+## ⚠️ Important: Read THIS FIRST
+
+**[WHAT_TO_EXPECT.md](WHAT_TO_EXPECT.md)** - Explains what this PR does and does NOT do
 
 ### 📖 Full Instructions
 
