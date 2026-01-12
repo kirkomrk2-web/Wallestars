@@ -169,7 +169,7 @@ Expected: HTTP 200 with people search results
 #### Workflow Test
 ```bash
 # Test webhook endpoint
-curl -X POST "https://n8n.srv1201204.hstgr.cloud/webhook/registry-check" \
+curl -X POST "${N8N_WEBHOOK_URL}/webhook/registry-check" \
   -H "Content-Type: application/json"
 ```
 
@@ -481,7 +481,7 @@ VALUES ('E2E Test Business EOOD', '+359888999000', 'e2e-test', 'pending');
 
 **Step 2: Trigger Registry Check**
 ```bash
-curl -X POST "https://n8n.srv1201204.hstgr.cloud/webhook/registry-check" \
+curl -X POST "${N8N_WEBHOOK_URL}/webhook/registry-check" \
   -H "Content-Type: application/json"
 ```
 - [ ] HTTP 200 response received

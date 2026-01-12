@@ -276,7 +276,7 @@ return results;
 ### Monitoring
 ```bash
 # Check if workflow is active
-curl https://n8n.srv1201204.hstgr.cloud/api/v1/workflows | grep "SMS Monitor"
+curl ${N8N_WEBHOOK_URL}/api/v1/workflows | grep "SMS Monitor"
 
 # Test SMS API connection
 curl -H "Authorization: Bearer $SMSTOME_API_KEY" \
@@ -469,7 +469,7 @@ CREATE INDEX idx_email_verified ON verified_business_profiles(email_verified_at)
 
 ```bash
 # N8N Integration
-N8N_WEBHOOK_URL=https://n8n.srv1201204.hstgr.cloud
+N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
 N8N_API_KEY=your_n8n_api_key_here
 
 # Smstome.com SMS Service
@@ -539,7 +539,7 @@ HOSTINGER_IMAP_CREDENTIAL_ID=your_n8n_hostinger_credential_id
 #### 1. Import Workflows to N8N
 ```bash
 # Login to N8N Dashboard
-open https://n8n.srv1201204.hstgr.cloud
+open ${N8N_WEBHOOK_URL}
 
 # Import each workflow:
 # 1. Workflows → Add workflow → Import from File
@@ -562,10 +562,10 @@ Replace placeholder IDs in workflows:
 #### 4. Verify Webhook URL
 ```bash
 # Get Registry Local Worker webhook URL
-# Should be: https://n8n.srv1201204.hstgr.cloud/webhook/registry-check
+# Should be: ${N8N_WEBHOOK_URL}/webhook/registry-check
 
 # Test webhook
-curl -X POST https://n8n.srv1201204.hstgr.cloud/webhook/registry-check \
+curl -X POST ${N8N_WEBHOOK_URL}/webhook/registry-check \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
@@ -584,7 +584,7 @@ VALUES ('Test Business EOOD', '+359888123456', 'test-business', 'pending');
 
 #### Step 2: Trigger Registry Check
 ```bash
-curl -X POST https://n8n.srv1201204.hstgr.cloud/webhook/registry-check
+curl -X POST ${N8N_WEBHOOK_URL}/webhook/registry-check
 ```
 
 #### Step 3: Verify Registry Result
@@ -720,7 +720,7 @@ curl -H "X-API-Key: $COMPANYBOOK_API_KEY" \
 # Only EOOD and ET are allowed
 
 # 5. Verify webhook URL
-curl -X POST https://n8n.srv1201204.hstgr.cloud/webhook/registry-check
+curl -X POST ${N8N_WEBHOOK_URL}/webhook/registry-check
 ```
 
 **Solutions:**
