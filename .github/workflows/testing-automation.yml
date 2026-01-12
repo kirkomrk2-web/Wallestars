@@ -217,11 +217,11 @@ jobs:
     name: Уведоми за резултати
     needs: [run-tests, code-quality, security-scan, build-verification]
     if: always()
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
     
     steps:
       - name: Изпрати резултати към n8n
-        env:
-          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
           curl -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
             -H "Content-Type: application/json" \
