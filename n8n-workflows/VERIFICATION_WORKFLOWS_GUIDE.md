@@ -139,12 +139,17 @@ const vatNumber = item.eik ? `BG${item.eik}` : null;
 // Generate 33mail Alias
 const emailAlias = item.name 
   ? `${item.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '-')  // Replace any non-alphanumeric with hyphen
-      .replace(/-+/g, '-')          // Replace multiple hyphens with single
-      .replace(/^-|-$/g, '')        // Remove leading/trailing hyphens
+      .toLowerCase()                  // Convert to lowercase first
+      .replace(/[^a-z0-9]/g, '-')     // Replace any non-alphanumeric with hyphen
+      .replace(/-+/g, '-')            // Replace multiple hyphens with single
+      .replace(/^-|-$/g, '')          // Remove leading/trailing hyphens
     }@wallester.33mail.com`
   : null;
+
+// Example transformations:
+// "My Company EOOD" → "my-company-eood@wallester.33mail.com"
+// "ABC-123 Ltd." → "abc-123-ltd@wallester.33mail.com"
+// "Company's Name!" → "companys-name@wallester.33mail.com"
 
 // Parse Address
 const address = {
