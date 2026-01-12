@@ -1,48 +1,250 @@
-# N8N Workflow Templates
+# N8N Workflows Architecture for Wallestars
 
-This directory contains n8n workflow templates for the Registry & Verification Architect system.
+## Overview
+This directory contains n8n workflow definitions for automating Wallestars Control Center operations.
 
-## Workflows
+## Workflow Structure
 
-### 1. Registry Local Worker (`registry-local-worker.json`)
-- **Purpose**: Business verification via CompanyBook API
-- **Trigger**: Webhook (`POST /webhook/registry-check`)
-- **Flow**: Read pending users → Search business → Get details → Filter EOOD/ET → Enrich data → Save to Supabase
+### Main Workflows
 
-### 2. SMS Monitor (`sms-monitor.json`)
-- **Purpose**: Monitor SMS verification codes
-- **Trigger**: Schedule (every 30 seconds)
-- **Flow**: Poll smstome.com → Extract codes via regex → Match pending requests → Update verification status
+#### 1. **GitHub Automation Workflow** (`github-automation.json`)
+- **Purpose**: Monitor and automate GitHub operations
+- **Triggers**:
+  - Webhook from GitHub (PR created, issue opened, etc.)
+  - Scheduled: Every 15 minutes
+- **Actions**:
+  - Monitor pull requests and auto-review
+  - Track agent sessions in issues
+  - Auto-label and categorize issues
+  - Send notifications to Wallestars dashboard
+  - Auto-approve PRs from trusted agents
 
-### 3. Email Monitor (`email-monitor.json`)
-- **Purpose**: Monitor email verification links/codes
-- **Trigger**: IMAP watcher (Hostinger)
-- **Flow**: Watch inbox → Extract verification data → Match 33mail alias → Update profile
+#### 2. **System Health Monitor Workflow** (`system-health-monitor.json`)
+- **Purpose**: Monitor Wallestars and n8n health
+- **Triggers**: Scheduled every 5 minutes
+- **Actions**:
+  - Check Wallestars API health endpoint
+  - Check n8n health endpoint
+  - Monitor system resources (CPU, memory, disk)
+  - Send alerts on failures
+  - Auto-restart services via PM2 API
+  - Log health status to database
 
-## Import Instructions
+#### 3. **Deployment Automation Workflow** (`deployment-automation.json`)
+- **Purpose**: Automate deployment processes
+- **Triggers**:
+  - Git push to main branch
+  - Manual trigger via API
+- **Actions**:
+  - Run pre-deployment checks
+  - Execute deployment script
+  - Run post-deployment health checks
+  - Send deployment notifications
+  - Rollback on failure
 
-1. Open n8n dashboard at https://n8n.srv1201204.hstgr.cloud
-2. Click **Create workflow** or **Import from file**
-3. Select the JSON file
-4. Configure credentials:
-   - Supabase API credentials
-   - CompanyBook API headers (for registry-local-worker)
-   - Smstome.com API credentials (for sms-monitor)
-   - Hostinger IMAP credentials (for email-monitor)
-5. Activate the workflow
+#### 4. **User Activity Analytics Workflow** (`user-analytics.json`)
+- **Purpose**: Track and analyze user activity
+- **Triggers**: Webhook from Wallestars API
+- **Actions**:
+  - Log user actions
+  - Generate usage metrics
+  - Create daily/weekly reports
+  - Identify usage patterns
+  - Send analytics to dashboard
 
-## Required Environment Variables
+### Sub-Workflows
 
-```env
-COMPANYBOOK_API_URL=https://api.companybook.bg
-COMPANYBOOK_API_KEY=your_api_key
-SMSTOME_API_URL=https://api.smstome.com
-SMSTOME_API_KEY=your_api_key
+#### A. **GitHub PR Review Sub-workflow** (`sub-github-pr-review.json`)
+- Called by: GitHub Automation Workflow
+- **Actions**:
+  - Fetch PR details
+  - Check for merge conflicts
+  - Validate CI/CD status
+  - Check code quality metrics
+  - Auto-approve or request changes
+
+#### B. **Alert Notification Sub-workflow** (`sub-alert-notification.json`)
+- Called by: Multiple workflows
+- **Actions**:
+  - Format alert message
+  - Send to multiple channels (email, Slack, webhook)
+  - Log to Wallestars dashboard
+  - Create incident ticket if critical
+
+#### C. **Service Restart Sub-workflow** (`sub-service-restart.json`)
+- Called by: System Health Monitor
+- **Actions**:
+  - Execute PM2 restart command
+  - Wait and verify restart
+  - Log restart event
+  - Send notification
+
+#### D. **Metrics Collection Sub-workflow** (`sub-metrics-collection.json`)
+- Called by: Multiple workflows
+- **Actions**:
+  - Collect system metrics
+  - Store in database
+  - Update dashboard
+  - Trigger alerts on thresholds
+
+## Workflow Integration Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    GitHub Repository                         │
+│  (PRs, Issues, Agent Sessions, Commits)                     │
+└────────────────┬────────────────────────────────────────────┘
+                 │ Webhooks
+                 ▼
+┌─────────────────────────────────────────────────────────────┐
+│              GitHub Automation Workflow                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ PR Monitoring│  │Issue Tracking│  │Agent Sessions│      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                  │                  │              │
+│         └──────────────────┴──────────────────┘              │
+│                            │                                 │
+│                    Calls Sub-workflows                       │
+│                            ▼                                 │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │  PR Review  │  Alert Notification  │  Metrics      │     │
+│  └────────────────────────────────────────────────────┘     │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Wallestars Control Center                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Dashboard   │  │  Alerts      │  │  Logs        │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│           System Health Monitor Workflow                     │
+│  (Scheduled: Every 5 minutes)                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Wallestars   │  │  N8N Health  │  │  Resources   │      │
+│  │ Health Check │  │  Check       │  │  Monitor     │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                  │                  │              │
+│         └──────────────────┴──────────────────┘              │
+│                            │                                 │
+│                   On Failure ▼                               │
+│         ┌─────────────────────────────────────┐             │
+│         │   Service Restart Sub-workflow      │             │
+│         └─────────────────────────────────────┘             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Required Supabase Tables
+## API Endpoints for n8n Integration
 
-Run the schema from `../supabase/schema.sql` to create:
-- `users_pending` - Users awaiting verification
-- `verified_business_profiles` - Verified business data
-- `verification_logs` - Audit trail
+### Wallestars API Endpoints
+- `GET /api/health` - Health check
+- `POST /api/webhooks/n8n/alert` - Receive alerts from n8n
+- `POST /api/webhooks/n8n/metrics` - Receive metrics
+- `GET /api/system/status` - Get system status
+- `POST /api/deployments/trigger` - Trigger deployment
+
+### N8N Webhook Endpoints
+- `POST /webhook/github-event` - Receive GitHub webhooks
+- `POST /webhook/health-alert` - Receive health alerts
+- `POST /webhook/deployment` - Trigger deployment workflow
+- `POST /webhook/user-activity` - Log user activity
+
+## Environment Variables Required
+
+```env
+# N8N Configuration
+N8N_PORT=5678
+N8N_HOST=localhost
+N8N_PROTOCOL=https
+WEBHOOK_URL=https://n8n.srv1201204.hstgr.cloud/
+GENERIC_TIMEZONE=UTC
+
+# GitHub Integration
+GITHUB_TOKEN=<github_personal_access_token>
+GITHUB_OWNER=Wallesters-org
+GITHUB_REPO=Wallestars
+
+# Wallestars Integration
+WALLESTARS_API_URL=https://srv1201204.hstgr.cloud/api
+WALLESTARS_WEBHOOK_SECRET=<webhook_secret>
+
+# PM2 Integration (for service management)
+PM2_API_URL=http://localhost:9615
+
+# Alert Channels
+SLACK_WEBHOOK_URL=<slack_webhook_url>
+EMAIL_SMTP_HOST=<smtp_host>
+EMAIL_SMTP_PORT=587
+EMAIL_FROM=<from_email>
+EMAIL_TO=<to_email>
+```
+
+## Implementation Priority
+
+### Phase 1: Foundation (Week 1)
+1. ✅ System Health Monitor Workflow
+2. ✅ Alert Notification Sub-workflow
+3. ✅ Service Restart Sub-workflow
+
+### Phase 2: GitHub Integration (Week 2)
+4. GitHub Automation Workflow
+5. PR Review Sub-workflow
+6. Metrics Collection Sub-workflow
+
+### Phase 3: Advanced Features (Week 3)
+7. Deployment Automation Workflow
+8. User Activity Analytics Workflow
+
+## Testing Strategy
+
+### 1. Unit Testing
+- Test each node individually
+- Verify API connections
+- Validate data transformations
+
+### 2. Integration Testing
+- Test workflow end-to-end
+- Verify sub-workflow calls
+- Test error handling
+
+### 3. Load Testing
+- Simulate high webhook traffic
+- Test concurrent executions
+- Monitor resource usage
+
+## Monitoring & Maintenance
+
+### Metrics to Track
+- Workflow execution count
+- Success/failure rate
+- Average execution time
+- Resource usage
+- Alert frequency
+
+### Logs Location
+- N8N logs: `/var/www/wallestars/logs/n8n-out.log`
+- Error logs: `/var/www/wallestars/logs/n8n-err.log`
+- Health check logs: `/var/log/wallestars-health.log`
+
+## Backup & Recovery
+
+### Workflow Backup
+- Export workflows weekly
+- Store in git repository
+- Version control all changes
+
+### Credentials Backup
+- Store credentials securely
+- Use environment variables
+- Never commit secrets
+
+## Next Steps
+
+1. Create workflow JSON definitions
+2. Configure GitHub webhooks
+3. Set up Wallestars API endpoints
+4. Test workflows in n8n UI
+5. Deploy to production
+6. Monitor and iterate
