@@ -47,9 +47,14 @@ npm run lint
 # Build the application
 npm run build
 
-# Validate YAML syntax
+# Validate YAML syntax (requires Python 3 with PyYAML)
+# Install PyYAML if needed: pip install pyyaml
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/azure-webapps-node.yml'))"
+
+# Alternative: Use online YAML validators
+# - https://www.yamllint.com/
+# - https://jsonformatter.org/yaml-validator
 ```
 
 ## Expected Results

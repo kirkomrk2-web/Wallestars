@@ -108,22 +108,36 @@ The workflows rely on the following npm scripts defined in `package.json`:
 ```json
 {
   "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/index.js",
+    "client": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server/index.js",
     "test": "vitest run",
     "test:ci": "vitest run --coverage",
     "test:watch": "vitest",
     "lint": "echo \"Linting not configured yet\" && exit 0",
-    "build": "vite build"
+    "validate-env": "node validate-env.js",
+    "prestart": "node validate-env.js"
   }
 }
 ```
 
 ### Script Descriptions
 
+- **`dev`**: Starts both server and client in development mode concurrently
+- **`server`**: Starts backend server with nodemon for hot reloading
+- **`client`**: Starts Vite development server on all network interfaces
+- **`build`**: Builds the production bundle using Vite
+- **`preview`**: Previews the production build locally
+- **`start`**: Starts the production server (runs validate-env first via prestart)
 - **`test`**: Runs all tests using Vitest
 - **`test:ci`**: Runs tests with coverage report (used in CI)
 - **`test:watch`**: Runs tests in watch mode for development
 - **`lint`**: Placeholder for future linting configuration
-- **`build`**: Builds the production bundle using Vite
+- **`validate-env`**: Validates required environment variables are set
+- **`prestart`**: Automatically runs before start to validate environment
 
 ---
 
