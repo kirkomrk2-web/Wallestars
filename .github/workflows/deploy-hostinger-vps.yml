@@ -152,8 +152,8 @@ jobs:
         echo "🔍 Running health check..."
         sleep 10
         
-        # Check if application is responding
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://$VPS_HOST/api/health || echo "000")
+        # Check if application is responding (with SSL verification)
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://$VPS_HOST/api/health || echo "000")
         
         if [ "$RESPONSE" = "200" ]; then
           echo "✅ Application is healthy!"

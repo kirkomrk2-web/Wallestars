@@ -26,7 +26,7 @@ class HostingerClient {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      timeout: 30000 // 30 seconds
+      timeout: parseInt(process.env.HOSTINGER_API_TIMEOUT || '30000', 10) // Configurable timeout
     });
     
     // Add response interceptor for error handling

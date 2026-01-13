@@ -16,6 +16,7 @@ import {
 export default function HostingerManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   
   // State for different sections
@@ -27,6 +28,12 @@ export default function HostingerManagement() {
 
   // Check if Hostinger API is configured
   const [isConfigured, setIsConfigured] = useState(false);
+
+  // Toast notification helper
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     checkConfiguration();
@@ -124,7 +131,8 @@ export default function HostingerManagement() {
 
   // Renew subscription
   const handleRenewSubscription = async (subscriptionId) => {
-    if (!confirm('Are you sure you want to renew this subscription?')) return;
+    const userConfirmed = window.confirm('Are you sure you want to renew this subscription?');
+    if (!userConfirmed) return;
     
     setLoading(true);
     setError(null);
@@ -135,10 +143,11 @@ export default function HostingerManagement() {
       });
       if (!response.ok) throw new Error('Failed to renew subscription');
       const data = await response.json();
-      alert(data.message || 'Subscription renewed successfully');
+      showToast(data.message || 'Subscription renewed successfully', 'success');
       fetchSubscriptions();
     } catch (err) {
       setError(err.message);
+      showToast('Failed to renew subscription', 'error');
     } finally {
       setLoading(false);
     }
@@ -146,7 +155,8 @@ export default function HostingerManagement() {
 
   // Restart VPS
   const handleRestartVPS = async (instanceId) => {
-    if (!confirm('Are you sure you want to restart this VPS?')) return;
+    const userConfirmed = window.confirm('Are you sure you want to restart this VPS?');
+    if (!userConfirmed) return;
     
     setLoading(true);
     setError(null);
@@ -157,10 +167,11 @@ export default function HostingerManagement() {
       });
       if (!response.ok) throw new Error('Failed to restart VPS');
       const data = await response.json();
-      alert(data.message || 'VPS restart initiated');
+      showToast(data.message || 'VPS restart initiated', 'success');
       fetchVPSInstances();
     } catch (err) {
       setError(err.message);
+      showToast('Failed to restart VPS', 'error');
     } finally {
       setLoading(false);
     }
@@ -225,6 +236,27 @@ export default function HostingerManagement() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Toast Notification */}
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
+              toast.type === 'success' 
+                ? 'bg-green-500/90 text-white' 
+                : 'bg-red-500/90 text-white'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <XCircle className="w-5 h-5" />
+            )}
+            <p>{toast.message}</p>
+          </motion.div>
+        )}
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
