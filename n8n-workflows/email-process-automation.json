@@ -1,0 +1,159 @@
+{
+    "name": "Intelligent Email Processing & Agent Delegation",
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "simple": false,
+                "filters": {
+                    "readStatus": "unread"
+                },
+                "options": {}
+            },
+            "name": "Gmail Trigger",
+            "type": "n8n-nodes-base.gmailTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "messages": {
+                    "message": [
+                        {
+                            "role": "system",
+                            "content": "You are an intelligent email assistant for Wallestars. Analyze the incoming email.\n\nOutput JSON with fields:\n- summary: short summary of the email\n- priority: 'high', 'medium', 'low'\n- category: 'support', 'alert', 'inquiry', 'spam', 'other'\n- suggested_agent: 'github', 'claude', 'antigravity', 'human'\n- action_plan: short description of what needs to be done"
+                        },
+                        {
+                            "role": "user",
+                            "content": "Subject: {{$json.subject}}\nBody: {{$json.snippet}}\nFrom: {{$json.from}}"
+                        }
+                    ]
+                },
+                "jsonOutput": true
+            },
+            "name": "AI Analysis",
+            "type": "@n8n/n8n-nodes-langchain.chainOpenAi",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.priority}}",
+                            "operation": "equal",
+                            "value2": "high"
+                        }
+                    ]
+                }
+            },
+            "name": "Is High Priority?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://wallestars-control.com/api/webhooks/n8n/alert",
+                "method": "POST",
+                "jsonParameters": true,
+                "options": {},
+                "body": {
+                    "type": "high_priority_email",
+                    "data": "={{$json}}"
+                }
+            },
+            "name": "Notify Dashboard (High)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                900,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://wallestars-control.com/api/webhooks/n8n/tasks",
+                "method": "POST",
+                "jsonParameters": true,
+                "options": {},
+                "body": {
+                    "type": "new_task",
+                    "data": "={{$json}}"
+                }
+            },
+            "name": "Add to Task List (Low)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                900,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Gmail Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "AI Analysis",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Analysis": {
+            "main": [
+                [
+                    {
+                        "node": "Is High Priority?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is High Priority?": {
+            "main": [
+                [
+                    {
+                        "node": "Notify Dashboard (High)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Add to Task List (Low)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
