@@ -1,0 +1,375 @@
+{
+    "name": "Email OTP Extractor",
+    "nodes": [
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "senderFilter",
+                            "value": "={{ $json.senderFilter || 'wallester' }}"
+                        },
+                        {
+                            "name": "subjectFilter",
+                            "value": "={{ $json.subjectFilter || 'verification' }}"
+                        }
+                    ],
+                    "number": [
+                        {
+                            "name": "maxRetries",
+                            "value": "={{ $json.maxRetries || 10 }}"
+                        },
+                        {
+                            "name": "waitSeconds",
+                            "value": "={{ $json.waitSeconds || 15 }}"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000001",
+            "name": "Parse Input",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ],
+            "notesInFlow": true,
+            "notes": "Configure search parameters"
+        },
+        {
+            "parameters": {
+                "values": {
+                    "number": [
+                        {
+                            "name": "retryCount",
+                            "value": 0
+                        }
+                    ],
+                    "string": [
+                        {
+                            "name": "startTime",
+                            "value": "={{ new Date().toISOString() }}"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000002",
+            "name": "Initialize",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "amount": "={{ $json.waitSeconds || 15 }}",
+                "unit": "seconds"
+            },
+            "id": "00000000-0000-0000-0000-000000000003",
+            "name": "Wait",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "returnAll": false,
+                "limit": 10,
+                "simple": false,
+                "filters": {
+                    "from": "={{ $node['Parse Input'].json.senderFilter }}",
+                    "subject": "={{ $node['Parse Input'].json.subjectFilter }}",
+                    "receivedAfter": "={{ $node['Initialize'].json.startTime }}",
+                    "readStatus": "unread"
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000004",
+            "name": "Search Gmail",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.1,
+            "position": [
+                900,
+                300
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Gmail account"
+                }
+            },
+            "notesInFlow": true,
+            "notes": "Search for verification emails"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{ $json.length }}",
+                            "operation": "larger",
+                            "value2": 0
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000005",
+            "name": "Email Found?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Multi-pattern OTP extraction from email\nconst items = $input.all();\n\nif (items.length === 0) {\n  throw new Error('No emails found');\n}\n\n// Get the most recent email\nconst email = items[0].json;\nconst subject = email.subject || '';\nconst snippet = email.snippet || '';\nconst body = email.plainText || email.snippet || '';\n\n// Combine all text sources\nconst fullText = `${subject} ${snippet} ${body}`;\n\n// OTP Extraction Patterns (по важност)\nconst patterns = [\n  /\\b(\\d{6})\\b/,                          // 6-digit code\n  /\\b(\\d{4})\\b/,                          // 4-digit code  \n  /code[:\\s]*(\\d{4,6})/i,                 // \"code: 123456\"\n  /OTP[:\\s]*(\\d{4,6})/i,                  // \"OTP: 123456\"\n  /verification[^\\d]+(\\d{4,6})/i,         // \"verification code 123456\"\n  /confirm[^\\d]+(\\d{4,6})/i,              // \"confirmation code 123456\"\n  /your code is[^\\d]+(\\d{4,6})/i,         // \"your code is 123456\"\n  /enter[^\\d]+(\\d{4,6})/i,                // \"enter 123456\"\n  /\\b(\\d{5})\\b/                           // 5-digit fallback\n];\n\nlet extractedCode = null;\nlet patternUsed = null;\n\n// Try each pattern\nfor (let i = 0; i < patterns.length; i++) {\n  const match = fullText.match(patterns[i]);\n  if (match && match[1]) {\n    extractedCode = match[1];\n    patternUsed = patterns[i].toString();\n    break;\n  }\n}\n\n// Also check for verification links\nconst linkPattern = /https?:\\/\\/[^\\s]+verify[^\\s]*/i;\nconst linkMatch = fullText.match(linkPattern);\nconst verificationLink = linkMatch ? linkMatch[0] : null;\n\nif (!extractedCode && !verificationLink) {\n  throw new Error('Could not extract OTP code or verification link from email');\n}\n\nreturn {\n  json: {\n    success: true,\n    code: extractedCode,\n    verification_link: verificationLink,\n    email_id: email.id,\n    email_subject: subject,\n    email_from: email.from,\n    pattern_used: patternUsed,\n    full_text_preview: fullText.substring(0, 200),\n    timestamp: new Date().toISOString()\n  }\n};"
+            },
+            "id": "00000000-0000-0000-0000-000000000006",
+            "name": "Extract OTP",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1380,
+                200
+            ],
+            "notesInFlow": true,
+            "notes": "Multi-pattern extraction"
+        },
+        {
+            "parameters": {
+                "messageId": "={{ $json.email_id }}",
+                "labelIds": [
+                    "UNREAD"
+                ]
+            },
+            "id": "00000000-0000-0000-0000-000000000007",
+            "name": "Mark as Read",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.1,
+            "position": [
+                1600,
+                200
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "values": {
+                    "number": [
+                        {
+                            "name": "retryCount",
+                            "value": "={{ $node['Initialize'].json.retryCount + 1 }}"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000008",
+            "name": "Increment Retry",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1380,
+                380
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{ $json.retryCount }}",
+                            "operation": "smaller",
+                            "value2": "={{ $node['Parse Input'].json.maxRetries }}"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000009",
+            "name": "Retry Check",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1600,
+                380
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const retryCount = $input.first().json.retryCount;\nconst maxRetries = $node['Parse Input'].json.maxRetries;\nconst waitSeconds = $node['Parse Input'].json.waitSeconds;\nconst totalWaitTime = retryCount * waitSeconds;\n\nreturn {\n  json: {\n    success: false,\n    error: 'EMAIL_TIMEOUT',\n    message: `Email not received after ${maxRetries} attempts (${totalWaitTime}s)`,\n    retriesAttempted: retryCount,\n    filters: {\n      sender: $node['Parse Input'].json.senderFilter,\n      subject: $node['Parse Input'].json.subjectFilter\n    },\n    timestamp: new Date().toISOString()\n  }\n};"
+            },
+            "id": "00000000-0000-0000-0000-000000000010",
+            "name": "Timeout Error",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1840,
+                480
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "00000000-0000-0000-0000-000000000011",
+            "name": "Success Output",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                1820,
+                200
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "00000000-0000-0000-0000-000000000012",
+            "name": "Error Output",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                2060,
+                480
+            ]
+        }
+    ],
+    "connections": {
+        "Parse Input": {
+            "main": [
+                [
+                    {
+                        "node": "Initialize",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Initialize": {
+            "main": [
+                [
+                    {
+                        "node": "Wait",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait": {
+            "main": [
+                [
+                    {
+                        "node": "Search Gmail",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Search Gmail": {
+            "main": [
+                [
+                    {
+                        "node": "Email Found?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Email Found?": {
+            "main": [
+                [
+                    {
+                        "node": "Extract OTP",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Increment Retry",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract OTP": {
+            "main": [
+                [
+                    {
+                        "node": "Mark as Read",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mark as Read": {
+            "main": [
+                [
+                    {
+                        "node": "Success Output",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Increment Retry": {
+            "main": [
+                [
+                    {
+                        "node": "Retry Check",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Retry Check": {
+            "main": [
+                [
+                    {
+                        "node": "Wait",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Timeout Error",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Timeout Error": {
+            "main": [
+                [
+                    {
+                        "node": "Error Output",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

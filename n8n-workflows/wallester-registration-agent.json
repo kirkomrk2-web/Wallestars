@@ -1,0 +1,543 @@
+{
+    "name": "Wallester Registration Agent (Supabase + Airtop + MCP)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "wallester-registration",
+                "responseMode": "onReceived"
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                100,
+                300
+            ],
+            "webhookId": "wallester-reg-webhook"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "verified_owners",
+                "returnAll": false,
+                "limit": 1
+            },
+            "id": "output-summary",
+            "name": "Output Summary",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "businesses",
+                "options": {}
+            },
+            "id": "split-out",
+            "name": "Split Out",
+            "type": "n8n-nodes-base.splitOut",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "## Session Management Sub-workflow\n\nThis calls the Airtop session manager to:\n1. Create a new browser session\n2. Create a window for the registration flow\n3. Return session_id and window_id for use in next steps"
+            },
+            "id": "note-session",
+            "name": "Note - Session Management",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                660,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "workflowId": "airtop-session-manager"
+            },
+            "id": "execute-session-workflow",
+            "name": "Execute Session Workflow",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.1,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "options": {
+                    "systemMessage": "You are a Wallester registration automation agent. Your task is to complete business card registration on Wallester.com for Bulgarian EOOD & ET businesses.\n\nYou have access to browser control tools: Click, Type, Load URL, Query, Start browser, End session.\n\nFor each business, follow these steps:\n1. Navigate to Wallester business registration page\n2. Fill in company details (name, EIK, VAT number)\n3. Enter representative information\n4. Handle any verification steps\n5. Complete the registration\n\nAlways verify each step completed successfully before proceeding.",
+                    "maxIterations": 10
+                },
+                "agent": "toolsAgent",
+                "promptType": "define",
+                "text": "=Complete Wallester registration for business:\n\nCompany Name: {{$json.business_name}}\nEIK: {{$json.eik}}\nVAT Number: BG{{$json.eik}}\nRepresentative: {{$json.owner_name}}\nEmail: {{$json.email_alias}}\nPhone: {{$json.assigned_phone}}\n\nSession ID: {{$json.session_id}}\nWindow ID: {{$json.window_id}}\n\nNavigate to Wallester and complete the registration process."
+            },
+            "id": "ai-agent",
+            "name": "AI Agent",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1.7,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "claude-3-5-haiku-20240307",
+                "options": {
+                    "temperature": 0.2
+                }
+            },
+            "id": "anthropic-model",
+            "name": "Claude 3.5 Haiku",
+            "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+            "typeVersion": 1.2,
+            "position": [
+                700,
+                500
+            ],
+            "credentials": {
+                "anthropicApi": {
+                    "id": "ANTHROPIC_CRED_ID",
+                    "name": "Anthropic Claude"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{$json.session_id}}"
+            },
+            "id": "chat-memory",
+            "name": "Chat Model Memory",
+            "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+            "typeVersion": 1.2,
+            "position": [
+                820,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "toolDescription": "Click on an element on the page",
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/click",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session_id",
+                            "value": "={{$json.session_id}}"
+                        },
+                        {
+                            "name": "window_id",
+                            "value": "={{$json.window_id}}"
+                        },
+                        {
+                            "name": "selector",
+                            "value": "={{$parameter.selector}}"
+                        }
+                    ]
+                }
+            },
+            "id": "tool-click",
+            "name": "Click",
+            "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+            "typeVersion": 1.1,
+            "position": [
+                700,
+                680
+            ]
+        },
+        {
+            "parameters": {
+                "toolDescription": "Type text into an input field",
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/type",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session_id",
+                            "value": "={{$json.session_id}}"
+                        },
+                        {
+                            "name": "window_id",
+                            "value": "={{$json.window_id}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{$parameter.text}}"
+                        },
+                        {
+                            "name": "selector",
+                            "value": "={{$parameter.selector}}"
+                        }
+                    ]
+                }
+            },
+            "id": "tool-type",
+            "name": "Type",
+            "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+            "typeVersion": 1.1,
+            "position": [
+                820,
+                680
+            ]
+        },
+        {
+            "parameters": {
+                "toolDescription": "Navigate to a URL",
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/navigate",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session_id",
+                            "value": "={{$json.session_id}}"
+                        },
+                        {
+                            "name": "window_id",
+                            "value": "={{$json.window_id}}"
+                        },
+                        {
+                            "name": "url",
+                            "value": "={{$parameter.url}}"
+                        }
+                    ]
+                }
+            },
+            "id": "tool-load-url",
+            "name": "Load URL",
+            "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+            "typeVersion": 1.1,
+            "position": [
+                940,
+                680
+            ]
+        },
+        {
+            "parameters": {
+                "toolDescription": "Query/extract data from the page",
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/query",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session_id",
+                            "value": "={{$json.session_id}}"
+                        },
+                        {
+                            "name": "window_id",
+                            "value": "={{$json.window_id}}"
+                        },
+                        {
+                            "name": "query",
+                            "value": "={{$parameter.query}}"
+                        }
+                    ]
+                }
+            },
+            "id": "tool-query",
+            "name": "Query",
+            "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+            "typeVersion": 1.1,
+            "position": [
+                1060,
+                680
+            ]
+        },
+        {
+            "parameters": {
+                "toolDescription": "End the browser session",
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/end-session",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session_id",
+                            "value": "={{$json.session_id}}"
+                        }
+                    ]
+                }
+            },
+            "id": "tool-end-session",
+            "name": "End Session",
+            "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+            "typeVersion": 1.1,
+            "position": [
+                1180,
+                680
+            ]
+        },
+        {
+            "parameters": {
+                "sseEndpoint": "={{$env.MCP_SERVER_URL}}/sse",
+                "operation": "listTools"
+            },
+            "id": "mcp-client",
+            "name": "MCP Client",
+            "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+            "typeVersion": 1,
+            "position": [
+                1300,
+                680
+            ]
+        },
+        {
+            "parameters": {
+                "schemaType": "jsonSchema",
+                "jsonSchemaExample": "{\"registration_completed\": true, \"confirmation_number\": \"WB-12345\", \"status\": \"success\", \"errors\": []}"
+            },
+            "id": "structured-output",
+            "name": "Structured Output Parser",
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.2,
+            "position": [
+                940,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "tableId": "verified_owners",
+                "filterType": "string",
+                "filterString": "id=eq.{{$json.owner_id}}"
+            },
+            "id": "supabase-update",
+            "name": "Update Supabase Status",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1300,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "channel": "#wallester-automation",
+                "text": "={{$json.registration_completed ? '✅' : '❌'}} Wallester registration for {{$json.business_name}}: {{$json.status}}\nConfirmation: {{$json.confirmation_number || 'N/A'}}"
+            },
+            "id": "slack-notify",
+            "name": "Slack Notification",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.1,
+            "position": [
+                1500,
+                300
+            ],
+            "credentials": {
+                "slackApi": {
+                    "id": "SLACK_CRED_ID",
+                    "name": "Slack Wallestars"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Output Summary",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Output Summary": {
+            "main": [
+                [
+                    {
+                        "node": "Split Out",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Out": {
+            "main": [
+                [
+                    {
+                        "node": "Execute Session Workflow",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Execute Session Workflow": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Update Supabase Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Claude 3.5 Haiku": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Chat Model Memory": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Click": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Type": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Load URL": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Query": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "End Session": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "MCP Client": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Structured Output Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Update Supabase Status": {
+            "main": [
+                [
+                    {
+                        "node": "Slack Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveExecutionProgress": true
+    },
+    "staticData": null,
+    "tags": [
+        "wallester",
+        "registration",
+        "ai-agent",
+        "airtop",
+        "mcp"
+    ]
+}

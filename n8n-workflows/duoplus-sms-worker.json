@@ -1,0 +1,247 @@
+{
+    "name": "DuoPlus SMS Worker",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "00000000-0000-0000-0000-000000000001",
+            "name": "Start",
+            "type": "n8n-nodes-base.start",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.duoplus.net/v1/cloudNumber/order",
+                "authentication": "none",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "country",
+                            "value": "US"
+                        },
+                        {
+                            "name": "service",
+                            "value": "wallester"
+                        },
+                        {
+                            "name": "type",
+                            "value": "real"
+                        }
+                    ]
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer 0b6e4995-719b-483c-80d6-d370c96b0469"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000002",
+            "name": "Order Number",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                460,
+                300
+            ],
+            "notesInFlow": true,
+            "notes": "API Key Configured"
+        },
+        {
+            "parameters": {
+                "values": {
+                    "number": "={{ $json.number }}",
+                    "orderId": "={{ $json.id }}"
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000003",
+            "name": "Set Variables",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 10,
+                "unit": "seconds"
+            },
+            "id": "00000000-0000-0000-0000-000000000004",
+            "name": "Wait 10s",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "=https://api.duoplus.net/v1/cloudNumber/status?id={{ $node['Set Variables'].json.orderId }}",
+                "authentication": "none",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer 0b6e4995-719b-483c-80d6-d370c96b0469"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000005",
+            "name": "Check Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.smsContent }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000006",
+            "name": "SMS Received?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "json",
+                "jsonOutput": "={\n  \"code\": {{ $json.smsContent.match(/\\d{4,6}/)[0] }},\n  \"fullMessage\": \"{{ $json.smsContent }}\"\n}",
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000007",
+            "name": "Extract Code",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1600,
+                200
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "00000000-0000-0000-0000-000000000009",
+            "name": "Loop Back",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                1600,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Start": {
+            "main": [
+                [
+                    {
+                        "node": "Order Number",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Order Number": {
+            "main": [
+                [
+                    {
+                        "node": "Set Variables",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Variables": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 10s",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait 10s": {
+            "main": [
+                [
+                    {
+                        "node": "Check Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Status": {
+            "main": [
+                [
+                    {
+                        "node": "SMS Received?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "SMS Received?": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Loop Back",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop Back": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 10s",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

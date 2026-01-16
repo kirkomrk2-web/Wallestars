@@ -1,0 +1,443 @@
+{
+    "name": "DuoPlus SMS Worker (Improved)",
+    "nodes": [
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "country",
+                            "value": "={{ $json.country || 'US' }}"
+                        },
+                        {
+                            "name": "service",
+                            "value": "={{ $json.service || 'wallester' }}"
+                        },
+                        {
+                            "name": "orderId",
+                            "value": "={{ $json.orderId }}"
+                        },
+                        {
+                            "name": "phoneNumber",
+                            "value": "={{ $json.phoneNumber }}"
+                        }
+                    ],
+                    "number": [
+                        {
+                            "name": "maxRetries",
+                            "value": "={{ $json.maxRetries || 12 }}"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000001",
+            "name": "Parse Input",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.orderId }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000013",
+            "name": "Has OrderId?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                380,
+                300
+            ],
+            "notesInFlow": true,
+            "notes": "Skip ordering if orderId already provided"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.duoplus.net/v1/cloudNumber/order",
+                "authentication": "none",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "country",
+                            "value": "={{ $json.country }}"
+                        },
+                        {
+                            "name": "service",
+                            "value": "={{ $json.service }}"
+                        },
+                        {
+                            "name": "type",
+                            "value": "real"
+                        }
+                    ]
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer 0b6e4995-719b-483c-80d6-d370c96b0469"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000002",
+            "name": "Order Number",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                460,
+                300
+            ],
+            "notesInFlow": true,
+            "notes": "DuoPlus API - Order Phone Number"
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "phoneNumber",
+                            "value": "={{ $json.number }}"
+                        },
+                        {
+                            "name": "orderId",
+                            "value": "={{ $json.id }}"
+                        }
+                    ],
+                    "number": [
+                        {
+                            "name": "retryCount",
+                            "value": 0
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000003",
+            "name": "Initialize Variables",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 10,
+                "unit": "seconds"
+            },
+            "id": "00000000-0000-0000-0000-000000000004",
+            "name": "Wait 10s",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ],
+            "notesInFlow": true,
+            "notes": "Wait for SMS to arrive"
+        },
+        {
+            "parameters": {
+                "url": "=https://api.duoplus.net/v1/cloudNumber/status?id={{ $json.orderId }}",
+                "authentication": "none",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer 0b6e4995-719b-483c-80d6-d370c96b0469"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "00000000-0000-0000-0000-000000000005",
+            "name": "Check SMS Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.smsContent }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000006",
+            "name": "SMS Received?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Multiple OTP patterns for robust extraction\nconst smsContent = $input.first().json.smsContent;\nconst phoneNumber = $input.first().json.phoneNumber;\nconst orderId = $input.first().json.orderId;\n\n// OTP Regex Patterns (ordered by priority)\nconst patterns = [\n  /\\b(\\d{6})\\b/,                    // Simple 6-digit\n  /\\b(\\d{4})\\b/,                    // Simple 4-digit\n  /code[:\\s]*(\\d{4,6})/i,           // \"code: 123456\"\n  /OTP[:\\s]*(\\d{4,6})/i,            // \"OTP: 123456\"\n  /verification[^\\d]+(\\d{4,6})/i,   // \"verification 123456\"\n  /confirm[^\\d]+(\\d{4,6})/i,        // \"confirm 123456\"\n  /\\b(\\d{5})\\b/                     // 5-digit fallback\n];\n\nlet extractedCode = null;\n\n// Try each pattern\nfor (const pattern of patterns) {\n  const match = smsContent.match(pattern);\n  if (match && match[1]) {\n    extractedCode = match[1];\n    break;\n  }\n}\n\nif (!extractedCode) {\n  throw new Error('Could not extract OTP code from SMS: ' + smsContent);\n}\n\nreturn {\n  json: {\n    success: true,\n    code: extractedCode,\n    phoneNumber: phoneNumber,\n    orderId: orderId,\n    fullMessage: smsContent,\n    timestamp: new Date().toISOString()\n  }\n};"
+            },
+            "id": "00000000-0000-0000-0000-000000000007",
+            "name": "Extract OTP Code",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1600,
+                200
+            ],
+            "notesInFlow": true,
+            "notes": "Multi-pattern OTP extraction"
+        },
+        {
+            "parameters": {
+                "values": {
+                    "number": [
+                        {
+                            "name": "retryCount",
+                            "value": "={{ $json.retryCount + 1 }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "dotNotation": false
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000008",
+            "name": "Increment Retry",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                1600,
+                380
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{ $json.retryCount }}",
+                            "operation": "smaller",
+                            "value2": "={{ $node['Parse Input'].json.maxRetries }}"
+                        }
+                    ]
+                }
+            },
+            "id": "00000000-0000-0000-0000-000000000009",
+            "name": "Retry Limit Check",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                1820,
+                380
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const retryCount = $input.first().json.retryCount;\nconst maxRetries = $input.first().json.maxRetries || 12;\nconst orderId = $input.first().json.orderId;\nconst phoneNumber = $input.first().json.phoneNumber;\n\nreturn {\n  json: {\n    success: false,\n    error: 'SMS_TIMEOUT',\n    message: `SMS not received after ${maxRetries} attempts (${maxRetries * 10}s)`,\n    orderId: orderId,\n    phoneNumber: phoneNumber,\n    retriesAttempted: retryCount,\n    timestamp: new Date().toISOString()\n  }\n};"
+            },
+            "id": "00000000-0000-0000-0000-000000000010",
+            "name": "Timeout Error",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2060,
+                480
+            ],
+            "notesInFlow": true,
+            "notes": "Max retries exceeded"
+        },
+        {
+            "parameters": {},
+            "id": "00000000-0000-0000-0000-000000000011",
+            "name": "Success Output",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                1820,
+                200
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "00000000-0000-0000-0000-000000000012",
+            "name": "Error Output",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                2280,
+                480
+            ]
+        }
+    ],
+    "connections": {
+        "Parse Input": {
+            "main": [
+                [
+                    {
+                        "node": "Has OrderId?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has OrderId?": {
+            "main": [
+                [
+                    {
+                        "node": "Initialize Variables",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Order Number",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Order Number": {
+            "main": [
+                [
+                    {
+                        "node": "Initialize Variables",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Initialize Variables": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 10s",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait 10s": {
+            "main": [
+                [
+                    {
+                        "node": "Check SMS Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check SMS Status": {
+            "main": [
+                [
+                    {
+                        "node": "SMS Received?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "SMS Received?": {
+            "main": [
+                [
+                    {
+                        "node": "Extract OTP Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Increment Retry",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract OTP Code": {
+            "main": [
+                [
+                    {
+                        "node": "Success Output",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Increment Retry": {
+            "main": [
+                [
+                    {
+                        "node": "Retry Limit Check",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Retry Limit Check": {
+            "main": [
+                [
+                    {
+                        "node": "Wait 10s",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Timeout Error",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Timeout Error": {
+            "main": [
+                [
+                    {
+                        "node": "Error Output",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

@@ -1,0 +1,774 @@
+{
+    "name": "Wallester Registration Agent V3 (Fixed Timing)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "wallester-registration-v3",
+                "responseMode": "onReceived"
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [100, 300],
+            "webhookId": "wallester-reg-v3-webhook"
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "verified_business_profiles",
+                "returnAll": false,
+                "limit": 100,
+                "filterType": "manual",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "id",
+                            "keyValue": "={{ $json.owner_id }}"
+                        }
+                    ]
+                }
+            },
+            "id": "fetch-owner",
+            "name": "Fetch Owner Data",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [300, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const owner = $input.first().json;\nconst businesses = owner.ownership_data?.businesses || [];\n\nreturn businesses.map(biz => ({\n  json: {\n    owner_id: owner.id,\n    owner_name: owner.company_name,\n    business_eik: biz.eik,\n    business_name: biz.name,\n    business_type: biz.type || 'EOOD',\n    email_alias: owner.email_alias || owner.email,\n    phone: owner.phone\n  }\n}));"
+            },
+            "id": "parse-businesses",
+            "name": "Parse Businesses",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [500, 300]
+        },
+        {
+            "parameters": {
+                "batchSize": 1,
+                "options": {}
+            },
+            "id": "loop-businesses",
+            "name": "Loop Businesses",
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [700, 300]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO registration_progress (owner_id, business_eik, business_name, current_step, status, metadata) VALUES ('{{ $json.owner_id }}', '{{ $json.business_eik }}', '{{ $json.business_name }}', 'INITIATED', 'IN_PROGRESS', '{\"automation_version\": \"3.0\", \"triggered_by\": \"webhook\"}') RETURNING *;"
+            },
+            "id": "init-progress",
+            "name": "Initialize Progress",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [900, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            },
+            "notesInFlow": true,
+            "notes": "Create progress tracking record"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.duoplus.net/v1/cloudNumber/order",
+                "authentication": "none",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "country",
+                            "value": "US"
+                        },
+                        {
+                            "name": "service",
+                            "value": "wallester"
+                        },
+                        {
+                            "name": "type",
+                            "value": "real"
+                        }
+                    ]
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer 0b6e4995-719b-483c-80d6-d370c96b0469"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "order-phone",
+            "name": "Order Phone Number",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [1100, 300],
+            "notesInFlow": true,
+            "notes": "ONLY order - don't wait for SMS yet"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'PHONE_NUMBER_ALLOCATED', 'IN_PROGRESS');\nUPDATE registration_progress SET resources = jsonb_set(jsonb_set(resources, '{phoneNumber}', to_jsonb('{{ $json.number }}'::text)), '{orderId}', to_jsonb('{{ $json.id }}'::text)) WHERE business_eik = '{{ $node['Parse Businesses'].json.business_eik }}';"
+            },
+            "id": "update-phone-allocated",
+            "name": "Update: Phone Allocated",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [1300, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.airtop.ai/api/v1/sessions",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "configuration",
+                            "value": "{\"timeoutMinutes\": 15}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "create-session",
+            "name": "Airtop: Create Session",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [1500, 300],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'BROWSER_SESSION_CREATED', 'IN_PROGRESS');\nUPDATE registration_progress SET resources = jsonb_set(resources, '{sessionId}', to_jsonb('{{ $json.data.id }}'::text)) WHERE business_eik = '{{ $node['Parse Businesses'].json.business_eik }}';"
+            },
+            "id": "update-session-created",
+            "name": "Update: Session Created",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [1700, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/windows",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "url",
+                            "value": "https://wallester.com/business-registration"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "open-window",
+            "name": "Airtop: Open Window",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [1900, 300],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'FORM_OPENED', 'IN_PROGRESS');\nUPDATE registration_progress SET resources = jsonb_set(resources, '{windowId}', to_jsonb('{{ $json.data.windowId }}'::text)) WHERE business_eik = '{{ $node['Parse Businesses'].json.business_eik }}';"
+            },
+            "id": "update-form-opened",
+            "name": "Update: Form Opened",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [2100, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/windows/{{ $node['Airtop: Open Window'].json.data.windowId }}/prompt",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "=Enter the phone number {{ $node['Order Phone Number'].json.number }} into the phone field and click continue/next."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "enter-phone",
+            "name": "Enter Phone Number",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [2300, 300],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'PHONE_ENTERED', 'WAITING_SMS');"
+            },
+            "id": "update-phone-entered",
+            "name": "Update: Phone Entered",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [2500, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'SMS_OTP_REQUESTED', 'WAITING_SMS');"
+            },
+            "id": "update-sms-requested",
+            "name": "Update: SMS Requested",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [2700, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "workflowId": "duoplus-sms-worker-improved",
+                "options": {
+                    "staticParameters": {
+                        "orderId": "={{ $node['Order Phone Number'].json.id }}",
+                        "phoneNumber": "={{ $node['Order Phone Number'].json.number }}",
+                        "maxRetries": 12
+                    }
+                }
+            },
+            "id": "listen-for-sms",
+            "name": "Listen for SMS OTP",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.1,
+            "position": [2900, 300],
+            "notesInFlow": true,
+            "notes": "NOW listen for SMS (phone already entered)"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'SMS_OTP_RECEIVED', 'IN_PROGRESS');"
+            },
+            "id": "update-sms-received",
+            "name": "Update: SMS Received",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [3100, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/windows/{{ $node['Airtop: Open Window'].json.data.windowId }}/prompt",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "=Enter the SMS code {{ $json.code }} and submit."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "submit-sms-code",
+            "name": "Submit SMS Code",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [3300, 300],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'SMS_OTP_SUBMITTED', 'IN_PROGRESS');"
+            },
+            "id": "update-sms-submitted",
+            "name": "Update: SMS Submitted",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [3500, 300],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/windows/{{ $node['Airtop: Open Window'].json.data.windowId }}/prompt",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "=Enter email address {{ $node['Parse Businesses'].json.email_alias }} and continue."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "enter-email",
+            "name": "Enter Email",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [100, 500],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'EMAIL_ENTERED', 'WAITING_EMAIL');"
+            },
+            "id": "update-email-entered",
+            "name": "Update: Email Entered",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [300, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'EMAIL_OTP_REQUESTED', 'WAITING_EMAIL');"
+            },
+            "id": "update-email-requested",
+            "name": "Update: Email OTP Requested",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [500, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "workflowId": "email-otp-extractor",
+                "options": {
+                    "staticParameters": {
+                        "senderFilter": "wallester",
+                        "subjectFilter": "verification",
+                        "maxRetries": 10,
+                        "waitSeconds": 15
+                    }
+                }
+            },
+            "id": "listen-for-email",
+            "name": "Listen for Email OTP",
+            "type": "n8n-nodes-base.executeWorkflow",
+            "typeVersion": 1.1,
+            "position": [700, 500],
+            "notesInFlow": true,
+            "notes": "Listen for email (already entered in site)"
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'EMAIL_OTP_RECEIVED', 'IN_PROGRESS');"
+            },
+            "id": "update-email-received",
+            "name": "Update: Email Received",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [900, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/windows/{{ $node['Airtop: Open Window'].json.data.windowId }}/prompt",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "=Enter the email verification code {{ $json.code }} and submit."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "submit-email-code",
+            "name": "Submit Email Code",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [1100, 500],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'EMAIL_OTP_SUBMITTED', 'IN_PROGRESS');"
+            },
+            "id": "update-email-submitted",
+            "name": "Update: Email Submitted",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [1300, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/windows/{{ $node['Airtop: Open Window'].json.data.windowId }}/prompt",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "=Fill in business details:\nCompany Name: {{ $node['Parse Businesses'].json.business_name }}\nEIK: {{ $node['Parse Businesses'].json.business_eik }}\nBusiness Type: {{ $node['Parse Businesses'].json.business_type }}\n\nComplete the form and submit."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "fill-business-details",
+            "name": "Fill Business Details",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [1500, 500],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT update_registration_step('{{ $node['Parse Businesses'].json.business_eik }}', 'BUSINESS_DETAILS_ENTERED', 'IN_PROGRESS');"
+            },
+            "id": "update-business-details",
+            "name": "Update: Business Details",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [1700, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Create Session'].json.data.id }}/terminate",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "options": {}
+            },
+            "id": "terminate-session",
+            "name": "Airtop: Terminate",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [1900, 500],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT complete_registration('{{ $node['Parse Businesses'].json.business_eik }}');"
+            },
+            "id": "complete-registration",
+            "name": "Mark as Completed",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [2100, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "channel": "#wallester-automation",
+                "text": "=✅ Registration completed for {{ $node['Parse Businesses'].json.business_name }} ({{ $node['Parse Businesses'].json.business_eik }})\n\nDuration: {{ $json.duration_seconds }}s\nPhone: {{ $node['Order Phone Number'].json.number }}\nEmail: {{ $node['Parse Businesses'].json.email_alias }}"
+            },
+            "id": "slack-success",
+            "name": "Slack Success",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.1,
+            "position": [2300, 500],
+            "credentials": {
+                "slackApi": {
+                    "id": "SLACK_CRED_ID",
+                    "name": "Slack Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {},
+            "id": "loop-back",
+            "name": "Next Business",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [2500, 500]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT log_registration_error('{{ $node['Parse Businesses'].json.business_eik }}', '{{ $json.error.type || \"UNKNOWN_ERROR\" }}', '{{ $json.error.message }}', {{ $json.error.retryable || false }});"
+            },
+            "id": "log-error",
+            "name": "Log Error",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [1500, 700],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "channel": "#wallester-automation",
+                "text": "=❌ Registration failed for {{ $node['Parse Businesses'].json.business_name }} ({{ $node['Parse Businesses'].json.business_eik }})\n\nError: {{ $json.error.message }}\nRetryable: {{ $json.error.retryable }}"
+            },
+            "id": "slack-error",
+            "name": "Slack Error",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.1,
+            "position": [1700, 700],
+            "credentials": {
+                "slackApi": {
+                    "id": "SLACK_CRED_ID",
+                    "name": "Slack Wallestars"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [[{"node": "Fetch Owner Data", "type": "main", "index": 0}]]
+        },
+        "Fetch Owner Data": {
+            "main": [[{"node": "Parse Businesses", "type": "main", "index": 0}]]
+        },
+        "Parse Businesses": {
+            "main": [[{"node": "Loop Businesses", "type": "main", "index": 0}]]
+        },
+        "Loop Businesses": {
+            "main": [[{"node": "Initialize Progress", "type": "main", "index": 0}], null]
+        },
+        "Initialize Progress": {
+            "main": [[{"node": "Order Phone Number", "type": "main", "index": 0}]]
+        },
+        "Order Phone Number": {
+            "main": [[{"node": "Update: Phone Allocated", "type": "main", "index": 0}]]
+        },
+        "Update: Phone Allocated": {
+            "main": [[{"node": "Airtop: Create Session", "type": "main", "index": 0}]]
+        },
+        "Airtop: Create Session": {
+            "main": [[{"node": "Update: Session Created", "type": "main", "index": 0}]]
+        },
+        "Update: Session Created": {
+            "main": [[{"node": "Airtop: Open Window", "type": "main", "index": 0}]]
+        },
+        "Airtop: Open Window": {
+            "main": [[{"node": "Update: Form Opened", "type": "main", "index": 0}]]
+        },
+        "Update: Form Opened": {
+            "main": [[{"node": "Enter Phone Number", "type": "main", "index": 0}]]
+        },
+        "Enter Phone Number": {
+            "main": [[{"node": "Update: Phone Entered", "type": "main", "index": 0}]]
+        },
+        "Update: Phone Entered": {
+            "main": [[{"node": "Update: SMS Requested", "type": "main", "index": 0}]]
+        },
+        "Update: SMS Requested": {
+            "main": [[{"node": "Listen for SMS OTP", "type": "main", "index": 0}]]
+        },
+        "Listen for SMS OTP": {
+            "main": [[{"node": "Update: SMS Received", "type": "main", "index": 0}]]
+        },
+        "Update: SMS Received": {
+            "main": [[{"node": "Submit SMS Code", "type": "main", "index": 0}]]
+        },
+        "Submit SMS Code": {
+            "main": [[{"node": "Update: SMS Submitted", "type": "main", "index": 0}]]
+        },
+        "Update: SMS Submitted": {
+            "main": [[{"node": "Enter Email", "type": "main", "index": 0}]]
+        },
+        "Enter Email": {
+            "main": [[{"node": "Update: Email Entered", "type": "main", "index": 0}]]
+        },
+        "Update: Email Entered": {
+            "main": [[{"node": "Update: Email OTP Requested", "type": "main", "index": 0}]]
+        },
+        "Update: Email OTP Requested": {
+            "main": [[{"node": "Listen for Email OTP", "type": "main", "index": 0}]]
+        },
+        "Listen for Email OTP": {
+            "main": [[{"node": "Update: Email Received", "type": "main", "index": 0}]]
+        },
+        "Update: Email Received": {
+            "main": [[{"node": "Submit Email Code", "type": "main", "index": 0}]]
+        },
+        "Submit Email Code": {
+            "main": [[{"node": "Update: Email Submitted", "type": "main", "index": 0}]]
+        },
+        "Update: Email Submitted": {
+            "main": [[{"node": "Fill Business Details", "type": "main", "index": 0}]]
+        },
+        "Fill Business Details": {
+            "main": [[{"node": "Update: Business Details", "type": "main", "index": 0}]]
+        },
+        "Update: Business Details": {
+            "main": [[{"node": "Airtop: Terminate", "type": "main", "index": 0}]]
+        },
+        "Airtop: Terminate": {
+            "main": [[{"node": "Mark as Completed", "type": "main", "index": 0}]]
+        },
+        "Mark as Completed": {
+            "main": [[{"node": "Slack Success", "type": "main", "index": 0}]]
+        },
+        "Slack Success": {
+            "main": [[{"node": "Next Business", "type": "main", "index": 0}]]
+        },
+        "Next Business": {
+            "main": [[{"node": "Loop Businesses", "type": "main", "index": 0}]]
+        },
+        "Log Error": {
+            "main": [[{"node": "Slack Error", "type": "main", "index": 0}]]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveExecutionProgress": true,
+        "saveManualExecutions": true,
+        "errorWorkflow": "log-error"
+    },
+    "tags": ["wallester", "registration", "v3", "fixed-timing"]
+}

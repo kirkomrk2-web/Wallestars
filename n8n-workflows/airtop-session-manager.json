@@ -1,0 +1,179 @@
+{
+    "name": "Airtop Session Manager (Sub-workflow)",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "execute-trigger",
+            "name": "When Executed by Another Workflow",
+            "type": "n8n-nodes-base.executeWorkflowTrigger",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "## Session Management\n\nThis sub-workflow simplifies the session management for the Airtop browser agent.\n\n1. Creates a new browser session\n2. Creates a window\n3. Posts to Slack for tracking\n4. Returns session_id and window_id"
+            },
+            "id": "note",
+            "name": "Note",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                100,
+                140
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/sessions",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "configuration",
+                            "value": "={\"timeout_minutes\": 30, \"persist_session\": false}"
+                        }
+                    ]
+                }
+            },
+            "id": "session-create",
+            "name": "Session",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                300,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_CRED_ID",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$env.AIRTOP_API_URL}}/sessions/{{$json.data.id}}/windows",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "url",
+                            "value": "https://wallester.com/business"
+                        }
+                    ]
+                }
+            },
+            "id": "window-create",
+            "name": "Window",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_CRED_ID",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "channel": "#wallester-automation",
+                "text": "🚀 New Airtop session started\nSession ID: {{$json.session_id}}\nWindow ID: {{$json.window_id}}\nBusiness: {{$input.first().json.business_name}}"
+            },
+            "id": "slack-notify",
+            "name": "Slack",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.1,
+            "position": [
+                700,
+                300
+            ],
+            "credentials": {
+                "slackApi": {
+                    "id": "SLACK_CRED_ID",
+                    "name": "Slack Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Combine session and window IDs with the original business data\nconst sessionData = $('Session').first().json;\nconst windowData = $('Window').first().json;\nconst inputData = $input.first().json;\n\nreturn {\n  json: {\n    ...inputData,\n    session_id: sessionData.data?.id || sessionData.id,\n    window_id: windowData.data?.id || windowData.id,\n    session_created_at: new Date().toISOString()\n  }\n};"
+            },
+            "id": "return-ids",
+            "name": "Return IDs",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "When Executed by Another Workflow": {
+            "main": [
+                [
+                    {
+                        "node": "Session",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Session": {
+            "main": [
+                [
+                    {
+                        "node": "Window",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Window": {
+            "main": [
+                [
+                    {
+                        "node": "Slack",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Slack": {
+            "main": [
+                [
+                    {
+                        "node": "Return IDs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "airtop",
+        "session",
+        "sub-workflow"
+    ]
+}

@@ -1,0 +1,410 @@
+{
+    "name": "Universal Registration Agent (Airtop + Email)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "test-registration",
+                "responseMode": "onReceived"
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                100,
+                100
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "start-trigger",
+            "name": "Start Testing",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "return [\n  { json: { url: 'https://myspace.com/signup', name: 'MySpace' } },\n  { json: { url: 'https://vimeo.com/join', name: 'Vimeo' } }\n];"
+            },
+            "id": "define-targets",
+            "name": "Define Targets",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "batchSize": 1,
+                "options": {}
+            },
+            "id": "split-batches",
+            "name": "Loop Targets",
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const randomString = Math.random().toString(36).substring(7);\nconst domain = 'crules1.33mail.com';\nreturn {\n  email: `test.${randomString}@${domain}`,\n  password: `Pass${Math.random().toString(36).substring(2)}!`,\n  username: `User${randomString}`,\n  firstName: 'Test',\n  lastName: 'User',\n  url: $json.url\n};"
+            },
+            "id": "gen-identity",
+            "name": "Generate Identity",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.airtop.ai/api/v1/sessions",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "configuration",
+                            "value": "={ \"proxy\": { \"enabled\": false } }"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "airtop-session",
+            "name": "Airtop: Start Session",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                900,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $json.data.id }}/windows",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "url",
+                            "value": "={{ $node['Generate Identity'].json.url }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "airtop-window",
+            "name": "Airtop: Open Window",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1100,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/async/sessions/{{ $node['Airtop: Start Session'].json.data.id }}/windows/{{ $json.data.windowId }}/fill-form",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "=Please sign up using these details:\nEmail: {{ $node['Generate Identity'].json.email }}\nPassword: {{ $node['Generate Identity'].json.password }}\nFirst Name: {{ $node['Generate Identity'].json.firstName }}\nLast Name: {{ $node['Generate Identity'].json.lastName }}\n\nIf asked for a username, use: {{ $node['Generate Identity'].json.username }}\n\nAccept all cookies. Click 'Sign Up' or 'Get Started'. Do not complete CAPTCHAs if they appear, just stop."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "airtop-fill",
+            "name": "Airtop: Fill Form",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1300,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 30,
+                "unit": "seconds"
+            },
+            "id": "wait-for-action",
+            "name": "Wait for Action",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                1500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.airtop.ai/api/v1/sessions/{{ $node['Airtop: Start Session'].json.data.id }}/terminate",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "options": {}
+            },
+            "id": "airtop-terminate",
+            "name": "Airtop: Terminate",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1700,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "AIRTOP_API_KEY",
+                    "name": "Airtop API Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "amount": 30,
+                "unit": "seconds"
+            },
+            "id": "wait-for-email",
+            "name": "Wait for Email",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                1900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "options": {
+                    "search": "={{ $node['Generate Identity'].json.email }}"
+                }
+            },
+            "id": "imap-check",
+            "name": "Check Email (IMAP)",
+            "type": "n8n-nodes-base.imap",
+            "typeVersion": 1,
+            "position": [
+                2100,
+                300
+            ],
+            "credentials": {
+                "imap": {
+                    "id": "HOSTINGER_IMAP_CRED_ID",
+                    "name": "Hostinger Mail"
+                }
+            },
+            "notes": "Checks for the verification email"
+        },
+        {
+            "parameters": {
+                "jsCode": "const text = $json.text || $json.html;\nconst code = text.match(/\\b\\d{4,6}\\b/) ? text.match(/\\b\\d{4,6}\\b/)[0] : 'No Code Found';\nreturn { code };"
+            },
+            "id": "extract-code",
+            "name": "Extract OTP",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                2300,
+                300
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "loop-back",
+            "name": "Loop Back",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                2500,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Define Targets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Start Testing": {
+            "main": [
+                [
+                    {
+                        "node": "Define Targets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Define Targets": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Targets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop Targets": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Identity",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Identity": {
+            "main": [
+                [
+                    {
+                        "node": "Airtop: Start Session",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Airtop: Start Session": {
+            "main": [
+                [
+                    {
+                        "node": "Airtop: Open Window",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Airtop: Open Window": {
+            "main": [
+                [
+                    {
+                        "node": "Airtop: Fill Form",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Airtop: Fill Form": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for Action",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait for Action": {
+            "main": [
+                [
+                    {
+                        "node": "Airtop: Terminate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Airtop: Terminate": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait for Email": {
+            "main": [
+                [
+                    {
+                        "node": "Check Email (IMAP)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Email (IMAP)": {
+            "main": [
+                [
+                    {
+                        "node": "Extract OTP",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract OTP": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Targets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {}
+}

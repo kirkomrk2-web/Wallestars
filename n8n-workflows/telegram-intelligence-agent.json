@@ -1,0 +1,149 @@
+{
+    "name": "Telegram Knowledge Agent",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {
+                    "chatId": "YOUR_CHAT_ID"
+                }
+            },
+            "name": "Telegram Trigger",
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "prompt": "Analyze this message from my Telegram Saved Messages:\n\n{{$json.message.text}}\n\nCategorize it as one of:\n1. URGENT (Immediate Action)\n2. PROJECT (Related to Wallestars/Code)\n3. LEARNING (Docs, Tutorials)\n4. IDEA (Future concepts)\n\nReturn JSON: { \"category\": \"...\", \"summary\": \"...\", \"action_item\": \"...\" }"
+            },
+            "name": "AI Categorizer",
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO telegram_insights (category, summary, original_text, created_at) VALUES ($1, $2, $3, NOW())",
+                "additionalFields": {
+                    "queryParams": "={{[$json.category, $json.summary, $node[\"Telegram Trigger\"].json.message.text]}}"
+                }
+            },
+            "name": "Save to Supabase",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.category}}",
+                            "value2": "URGENT"
+                        }
+                    ]
+                }
+            },
+            "name": "Is Urgent?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "message": "🚨 URGENT ACTION ITEM: {{$json.action_item}}"
+            },
+            "name": "Send Alert",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": "TASKS_DOC_ID",
+                "content": "- [ ] {{$json.summary}} (Source: Telegram)"
+            },
+            "name": "Add to Tasks",
+            "type": "n8n-nodes-base.googleDocs",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Telegram Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "AI Categorizer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Categorizer": {
+            "main": [
+                [
+                    {
+                        "node": "Save to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save to Supabase": {
+            "main": [
+                [
+                    {
+                        "node": "Is Urgent?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Urgent?": {
+            "main": [
+                [
+                    {
+                        "node": "Send Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Add to Tasks",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
