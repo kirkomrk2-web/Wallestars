@@ -111,6 +111,16 @@
     },
     {
       "parameters": {
+        "jsCode": "// Add window_id for navigation\nconst input = $input.first().json;\nconst prevData = $('Extract Session Data').first().json;\n\nconst windowData = input.data || input;\n\nreturn {\n  json: {\n    ...prevData,\n    window_id: windowData.id || windowData.windowId\n  }\n};"
+      },
+      "id": "extract-window",
+      "name": "Extract Window ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions/{{ $json.session_id }}/windows/{{ $json.window_id }}/prompt",
         "authentication": "predefinedCredentialType",
@@ -292,6 +302,17 @@
       ]
     },
     "Airtop: Navigate to SMS Provider": {
+      "main": [
+        [
+          {
+            "node": "Extract Window ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Window ID": {
       "main": [
         [
           {

@@ -84,13 +84,15 @@ CREATE TRIGGER on_user_pending_created
     EXECUTE FUNCTION trigger_n8n_profile_creation();
 
 -- Optional: Trigger on UPDATE as well (if status changes)
-DROP TRIGGER IF EXISTS on_user_pending_updated ON users_pending;
+-- DISABLED: This can cause loops when n8n updates the status
+-- Only trigger on initial INSERT to prevent re-invoking n8n
+-- DROP TRIGGER IF EXISTS on_user_pending_updated ON users_pending;
 
-CREATE TRIGGER on_user_pending_updated
-    AFTER UPDATE ON users_pending
-    FOR EACH ROW
-    WHEN (OLD.status IS DISTINCT FROM NEW.status)
-    EXECUTE FUNCTION trigger_n8n_profile_creation();
+-- CREATE TRIGGER on_user_pending_updated
+--     AFTER UPDATE ON users_pending
+--     FOR EACH ROW
+--     WHEN (OLD.status IS DISTINCT FROM NEW.status AND NEW.status = 'pending')
+--     EXECUTE FUNCTION trigger_n8n_profile_creation();
 
 -- ============================================
 -- Alternative: Using Supabase Edge Functions
