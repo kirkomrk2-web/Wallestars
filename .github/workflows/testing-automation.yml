@@ -18,6 +18,8 @@ permissions:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    env:
+      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
     strategy:
       matrix:
         node-version: [20.x, 22.x]
