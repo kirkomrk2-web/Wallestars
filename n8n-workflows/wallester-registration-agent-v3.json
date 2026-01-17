@@ -17,7 +17,7 @@
         {
             "parameters": {
                 "operation": "getAll",
-                "tableId": "verified_business_profiles",
+                "tableId": "verified_owners",
                 "returnAll": false,
                 "limit": 100,
                 "filterType": "manual",
