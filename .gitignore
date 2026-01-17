@@ -72,3 +72,8 @@ id_rsa.pub
 *.backup
 *.old
 *~
+
+# Sensitive data directories
+credentials/
+backups/
+data/

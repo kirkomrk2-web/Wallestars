@@ -1,0 +1,342 @@
+{
+  "name": "YouTube MacroVoice",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6ccb13cf-1eb4-4667-9a64-ba10fd6027b7",
+        "options": {}
+      },
+      "id": "fa0821cd-a69e-4a31-a29b-512ba3a077eb",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        80,
+        144
+      ],
+      "webhookId": "6ccb13cf-1eb4-4667-9a64-ba10fd6027b7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "audio-check",
+              "leftValue": "={{ $json.body.audio_base64 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fbc3e0e3-b2ae-43bc-b867-63a841c543d3",
+      "name": "Has Audio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const audioBase64 = $input.first().json.body.audio_base64;\nconst mimeType = $input.first().json.body.audio_mime_type || 'audio/webm';\nconst audioFormat = $input.first().json.body.audio_format || 'webm';\n\nreturn {\n  json: $input.first().json,\n  binary: {\n    data: {\n      data: audioBase64,\n      mimeType: mimeType,\n      fileName: `audio.${audioFormat}`\n    }\n  }\n};"
+      },
+      "id": "33a4dd26-f51d-496e-bcfb-03afc2388f80",
+      "name": "Convert Base64 to Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "0b87830d-e14e-4237-b8fc-c21bf5b95a57",
+      "name": "Transcribe Voice",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        704,
+        64
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "kX5rZbh5l5A7I4I7",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "desc",
+              "name": "description",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "meal_id",
+              "name": "meal_id",
+              "value": "={{ $('Webhook Trigger').first().json.body.meal_id }}",
+              "type": "string"
+            },
+            {
+              "id": "callback_url",
+              "name": "callback_url",
+              "value": "={{ $('Webhook Trigger').first().json.body.callback_url }}",
+              "type": "string"
+            },
+            {
+              "id": "is_voice",
+              "name": "is_voice",
+              "value": "true",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "be9c00b0-2a69-4fe7-9e12-2970fd0fb3cc",
+      "name": "Set Description",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "desc",
+              "name": "description",
+              "value": "={{ $json.body.description }}",
+              "type": "string"
+            },
+            {
+              "id": "meal_id",
+              "name": "meal_id",
+              "value": "={{ $json.body.meal_id }}",
+              "type": "string"
+            },
+            {
+              "id": "callback_url",
+              "name": "callback_url",
+              "value": "={{ $json.body.callback_url }}",
+              "type": "string"
+            },
+            {
+              "id": "is_voice",
+              "name": "is_voice",
+              "value": "false",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1c07909b-31e2-4712-bf88-8437ddee8b2d",
+      "name": "Set Description (Text)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a nutrition estimation assistant. Given a meal description (which may be a casual voice transcript), do two things:\n\n1. Create a clean, concise meal title (remove filler words like 'yeah', 'um', 'I had', etc.)\n2. Estimate the calories and macronutrient breakdown. Infer reasonable portion sizes if not specified.\n\nRespond ONLY in this exact JSON format:\n{\n  \"meal_title\": \"<clean, concise meal description e.g. 'Two scrambled eggs with sourdough toast'>\",\n  \"meal_type\": \"breakfast|lunch|dinner|snack|other\",\n  \"calories\": <number>,\n  \"protein\": <number in grams>,\n  \"carbs\": <number in grams>,\n  \"fat\": <number in grams>\n}",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.description }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "67dd6de6-268a-4336-af5f-7cf727375721",
+      "name": "Estimate Nutrition",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1104,
+        304
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "kX5rZbh5l5A7I4I7",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $if($('Set Description (Text)').isExecuted, $('Set Description (Text)').first().json.callback_url, $('Set Description').first().json.callback_url) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "macrovoice-secret-123"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"meal_id\": \"{{ $if($('Set Description (Text)').isExecuted, $('Set Description (Text)').first().json.meal_id, $('Set Description').first().json.meal_id) }}\",\n  \"meal_type\": \"{{ $json.message.content.meal_type }}\",\n  \"calories\": {{ $json.message.content.calories }},\n  \"protein\": {{ $json.message.content.protein }},\n  \"carbs\": {{ $json.message.content.carbs }},\n  \"fat\": {{ $json.message.content.fat }},\n  \"description\": \"{{ $if($('Set Description (Text)').isExecuted, '', $json.message.content.meal_title) }}\"\n}",
+        "options": {}
+      },
+      "id": "f160eaa6-ff5e-45dd-bfc6-f6fbaf4c476e",
+      "name": "Send to Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        -48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Audio?": {
+      "main": [
+        [
+          {
+            "node": "Convert Base64 to Binary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Description (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Base64 to Binary": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Voice": {
+      "main": [
+        [
+          {
+            "node": "Set Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Description": {
+      "main": [
+        [
+          {
+            "node": "Estimate Nutrition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Description (Text)": {
+      "main": [
+        [
+          {
+            "node": "Estimate Nutrition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estimate Nutrition": {
+      "main": [
+        [
+          {
+            "node": "Send to Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "f254cbba-6cce-4a7f-9e20-7585e2470fca",
+  "meta": {
+    "instanceId": "858b0696cb7e4c2d54a791ff0d9e4a3cddc7a852434a593789da95c43379b467"
+  },
+  "id": "w7LpLxh9YMNGwrmF",
+  "tags": []
+}
