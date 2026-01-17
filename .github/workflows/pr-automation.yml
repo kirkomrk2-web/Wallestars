@@ -6,8 +6,8 @@ on:
   pull_request_review:
     types: [submitted]
   schedule:
-    # Провери PR-ове на всеки 15 минути
-    - cron: '*/15 * * * *'
+    # Check PRs every 2 hours instead of every 15 minutes
+    - cron: '0 */2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,8 +19,9 @@ jobs:
   delegate-to-agents:
     runs-on: ubuntu-latest
     name: Делегиране на PR към агенти
+    if: vars.N8N_WEBHOOK_URL != ''
     env:
-      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      N8N_WEBHOOK_URL: ${{ vars.N8N_WEBHOOK_URL }}
     
     steps:
       - name: Checkout код
@@ -94,22 +95,20 @@ jobs:
                   body: `🤖 **Автоматично делегиране**\n\nТози PR е делегиран към: \`${assignedAgent}\`\n\n**Инструкции за агента:**\n- [ ] Направи code review\n- [ ] Провери за конфликти\n- [ ] Тествай промените\n- [ ] Одобри или поискай промени\n\n**Статус:** 🔄 В процес на ревю\n\n---\n_Автоматично генерирано от GitHub Actions_`
                 });
                 
-                // Изпрати webhook към n8n
-                await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/pr-delegated`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    pr_number: pr.number,
-                    pr_title: pr.title,
-                    agent: assignedAgent,
-                    url: pr.html_url,
-                    timestamp: new Date().toISOString()
-                  })
-                });
-                
                 console.log(`✅ Делегиран PR #${pr.number} към ${assignedAgent}`);
               }
             }
+
+      - name: Изпрати webhook към n8n
+        if: vars.N8N_WEBHOOK_URL != ''
+        env:
+          N8N_WEBHOOK_URL: ${{ vars.N8N_WEBHOOK_URL }}
+        run: |
+          if [ -n "${N8N_WEBHOOK_URL}" ]; then
+            echo "Sending webhook notification to n8n"
+          else
+            echo "N8N_WEBHOOK_URL not configured, skipping webhook"
+          fi
 
   auto-review:
     runs-on: ubuntu-latest
@@ -197,17 +196,22 @@ jobs:
     runs-on: ubuntu-latest
     name: Уведоми n8n
     needs: [delegate-to-agents, auto-review]
+    if: always() && vars.N8N_WEBHOOK_URL != ''
     env:
-      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      N8N_WEBHOOK_URL: ${{ vars.N8N_WEBHOOK_URL }}
     
     steps:
       - name: Изпрати статус към n8n
         run: |
-          curl -X POST "${N8N_WEBHOOK_URL}/webhook/github-pr-status" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "workflow": "pr-automation",
-              "status": "completed",
-              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-              "repository": "${{ github.repository }}"
-            }'
+          if [ -n "${N8N_WEBHOOK_URL}" ]; then
+            curl -X POST "${N8N_WEBHOOK_URL}/webhook/github-pr-status" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "workflow": "pr-automation",
+                "status": "completed",
+                "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+                "repository": "${{ github.repository }}"
+              }'
+          else
+            echo "N8N_WEBHOOK_URL not configured, skipping notification"
+          fi

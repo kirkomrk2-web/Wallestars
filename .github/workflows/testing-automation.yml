@@ -6,8 +6,8 @@ on:
   push:
     branches: [main, develop]
   schedule:
-    # Пусни тестове на всеки 30 минути
-    - cron: '*/30 * * * *'
+    # Run tests every 6 hours instead of every 30 minutes
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -216,22 +216,26 @@ jobs:
     runs-on: ubuntu-latest
     name: Уведоми за резултати
     needs: [run-tests, code-quality, security-scan, build-verification]
-    if: always()
+    if: always() && vars.N8N_WEBHOOK_URL != ''
     env:
-      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      N8N_WEBHOOK_URL: ${{ vars.N8N_WEBHOOK_URL }}
     
     steps:
       - name: Изпрати резултати към n8n
         run: |
-          curl -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "workflow": "testing-automation",
-              "tests_passed": "${{ needs.run-tests.result }}",
-              "code_quality": "${{ needs.code-quality.result }}",
-              "security_scan": "${{ needs.security-scan.result }}",
-              "build_verification": "${{ needs.build-verification.result }}",
-              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-              "repository": "${{ github.repository }}",
-              "pr_number": "${{ github.event.pull_request.number || 'N/A' }}"
-            }'
+          if [ -n "${N8N_WEBHOOK_URL}" ]; then
+            curl -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "workflow": "testing-automation",
+                "tests_passed": "${{ needs.run-tests.result }}",
+                "code_quality": "${{ needs.code-quality.result }}",
+                "security_scan": "${{ needs.security-scan.result }}",
+                "build_verification": "${{ needs.build-verification.result }}",
+                "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+                "repository": "${{ github.repository }}",
+                "pr_number": "${{ github.event.pull_request.number || 'N/A' }}"
+              }'
+          else
+            echo "N8N_WEBHOOK_URL not configured, skipping notification"
+          fi
