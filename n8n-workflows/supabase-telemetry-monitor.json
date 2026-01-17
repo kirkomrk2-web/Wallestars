@@ -1,0 +1,233 @@
+{
+    "name": "Supabase Telemetry Monitor",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 5
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger",
+            "name": "Every 5 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [240, 300]
+        },
+        {
+            "parameters": {
+                "url": "=https://ansiaiuaygcfztabtknl.supabase.co/rest/v1/metrics",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFuc2lhaXVheWdjZnp0YWJ0a25sIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzA2ODY2OSwiZXhwIjoyMDc4NjQ0NjY5fQ.uAy4O9560idXOE6kAudCGYwC3K5ypPngZsbe7e3tWBA"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFuc2lhaXVheWdjZnp0YWJ0a25sIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzA2ODY2OSwiZXhwIjoyMDc4NjQ0NjY5fQ.uAy4O9560idXOE6kAudCGYwC3K5ypPngZsbe7e3tWBA"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "fetch-metrics",
+            "name": "Fetch Supabase Metrics",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [460, 300],
+            "notesInFlow": true,
+            "notes": "Get Prometheus metrics from Supabase"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Prometheus Metrics Parser for N8N\n// Input: Raw Prometheus metrics text\n// Output: Parsed JSON with key metrics\n\nconst metricsText = $input.first().json.data || $input.first().json.body || String($input.first().json);\nconst lines = metricsText.split('\\n');\nconst metrics = {};\n\nfor (const line of lines) {\n    // Skip comments and empty lines\n    if (line.startsWith('#') || line.trim() === '') {\n        continue;\n    }\n\n    // Parse metric line: \"metric_name{label=\\\"value\\\"} 123.45\"\n    const match = line.match(/^([a-zA-Z0-9_]+)(?:\\{([^}]+)\\})?\\s+(.+)$/);\n\n    if (match) {\n        const name = match[1];\n        const labelsStr = match[2];\n        const valueStr = match[3];\n        const value = parseFloat(valueStr);\n\n        // Skip if value is not a number (e.g. infinite)\n        if (isNaN(value)) continue;\n\n        // Store metric\n        if (!metrics[name]) {\n            metrics[name] = value;\n        }\n\n        // Check for specific critical metrics\n        if (name.includes('cpu_usage')) metrics.cpu_usage_percent = value;\n        if (name.includes('ram_usage')) metrics.ram_usage_percent = value;\n        if (name.includes('active_connections')) metrics.db_connections = value;\n        if (name.includes('disk_usage')) metrics.disk_usage_percent = value;\n    }\n}\n\n// Add timestamp\nmetrics.timestamp = new Date().toISOString();\nmetrics.project_id = 'ansiaiuaygcfztabtknl';\n\nreturn [{ json: metrics }];"
+            },
+            "id": "parse-metrics",
+            "name": "Parse Metrics",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [680, 300],
+            "notesInFlow": true,
+            "notes": "Uses prometheus-parser.js logic"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "cpu-check",
+                            "leftValue": "={{ $json.cpu_usage_percent }}",
+                            "rightValue": 80,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "id": "check-thresholds",
+            "name": "High CPU/RAM?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [900, 300]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "connections-check",
+                            "leftValue": "={{ $json.db_connections }}",
+                            "rightValue": 90,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "id": "check-connections",
+            "name": "High Connections?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [1120, 200]
+        },
+        {
+            "parameters": {
+                "channel": "#wallestars-alerts",
+                "text": "=🚨 SUPABASE ALERT - High Resource Usage\n\n**Project**: ansiaiuaygcfztabtknl\n**Time**: {{ $json.timestamp }}\n\n**Metrics**:\n• CPU Usage: {{ $json.cpu_usage_percent }}%\n• RAM Usage: {{ $json.ram_usage_percent }}%\n• DB Connections: {{ $json.db_connections }}\n• Disk Usage: {{ $json.disk_usage_percent }}%\n\n**Threshold Exceeded**: CPU or RAM >80%\n\n**Action Required**: Check Supabase Dashboard\nhttps://supabase.com/dashboard/project/ansiaiuaygcfztabtknl",
+                "otherOptions": {}
+            },
+            "id": "slack-alert-resources",
+            "name": "Slack: High Resources",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.2,
+            "position": [1340, 200],
+            "credentials": {
+                "slackApi": {
+                    "id": "SLACK_CRED_ID",
+                    "name": "Slack Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "channel": "#wallestars-alerts",
+                "text": "=⚠️ SUPABASE ALERT - High DB Connections\n\n**Project**: ansiaiuaygcfztabtknl\n**Time**: {{ $json.timestamp }}\n\n**Active Connections**: {{ $json.db_connections }}/100\n\n**Threshold**: >90 connections\n\n**Recommendations**:\n1. Check for connection leaks\n2. Review active queries\n3. Consider connection pooling\n\n**Dashboard**: https://supabase.com/dashboard/project/ansiaiuaygcfztabtknl",
+                "otherOptions": {}
+            },
+            "id": "slack-alert-connections",
+            "name": "Slack: High Connections",
+            "type": "n8n-nodes-base.slack",
+            "typeVersion": 2.2,
+            "position": [1340, 100],
+            "credentials": {
+                "slackApi": {
+                    "id": "SLACK_CRED_ID",
+                    "name": "Slack Wallestars"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "insert",
+                "tableId": "system_health",
+                "columnsUi": {
+                    "columnValues": [
+                        {
+                            "column": "service",
+                            "value": "supabase"
+                        },
+                        {
+                            "column": "metrics",
+                            "value": "={{ JSON.stringify($json) }}"
+                        },
+                        {
+                            "column": "status",
+                            "value": "={{ $json.cpu_usage_percent > 80 || $json.db_connections > 90 ? 'warning' : 'ok' }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "log-to-supabase",
+            "name": "Log Metrics to DB",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [900, 500],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "SUPABASE_CRED_ID",
+                    "name": "Supabase Wallestars"
+                }
+            },
+            "notesInFlow": true,
+            "notes": "Store metrics history"
+        },
+        {
+            "parameters": {},
+            "id": "no-alert-needed",
+            "name": "No Alert Needed",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [1120, 400]
+        }
+    ],
+    "connections": {
+        "Every 5 Minutes": {
+            "main": [[{"node": "Fetch Supabase Metrics", "type": "main", "index": 0}]]
+        },
+        "Fetch Supabase Metrics": {
+            "main": [[{"node": "Parse Metrics", "type": "main", "index": 0}]]
+        },
+        "Parse Metrics": {
+            "main": [
+                [
+                    {"node": "High CPU/RAM?", "type": "main", "index": 0},
+                    {"node": "Log Metrics to DB", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "High CPU/RAM?": {
+            "main": [
+                [{"node": "High Connections?", "type": "main", "index": 0}],
+                [{"node": "No Alert Needed", "type": "main", "index": 0}]
+            ]
+        },
+        "High Connections?": {
+            "main": [
+                [{"node": "Slack: High Connections", "type": "main", "index": 0}],
+                [{"node": "Slack: High Resources", "type": "main", "index": 0}]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveExecutionProgress": false
+    },
+    "tags": ["supabase", "telemetry", "monitoring", "dro-34"]
+}
