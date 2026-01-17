@@ -14,6 +14,7 @@
 | **N8N** | 🟢 Active | https://n8n.srv1201204.hstgr.cloud |
 | **Supabase** | 🟢 ACTIVE_HEALTHY | ansiaiuaygcfztabtknl |
 | **GitHub** | 🟢 Connected | pr-123 pushed |
+| **V3 Webhook** | 🟢 **LIVE** | /webhook/wallester-registration-v3 |
 
 ---
 
