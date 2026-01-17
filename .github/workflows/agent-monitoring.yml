@@ -2,8 +2,8 @@ name: Agent Monitoring & Health Check
 
 on:
   schedule:
-    # Провери агентите на всеки 10 минути
-    - cron: '*/10 * * * *'
+    # Check agents every hour instead of every 10 minutes
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,8 +15,9 @@ jobs:
   monitor-agents:
     runs-on: ubuntu-latest
     name: Мониторинг на агенти
+    if: vars.N8N_WEBHOOK_URL != ''
     env:
-      N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      N8N_WEBHOOK_URL: ${{ vars.N8N_WEBHOOK_URL }}
     
     steps:
       - name: Checkout код
@@ -81,27 +82,33 @@ jobs:
               };
             }
             
-            // Създай summary
-            let summary = `## 🤖 Статус на агентите\\n\\n`;
-            summary += `**Време на проверка:** ${new Date().toISOString()}\\n\\n`;
-            summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\\n`;
-            summary += `|---|---|---|---|\\n`;
+            // Create summary with proper newlines
+            let summary = `## 🤖 Статус на агентите\n\n`;
+            summary += `**Време на проверка:** ${new Date().toISOString()}\n\n`;
+            summary += `| Агент | Назначени PR-ове | Последна активност | Статус |\n`;
+            summary += `|---|---|---|---|\n`;
             
             for (const [agent, status] of Object.entries(agentStatus)) {
-              summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\\n`;
+              summary += `| ${agent} | ${status.assigned_prs} | ${status.last_activity || 'Няма'} | ${status.status} |\n`;
             }
             
             await core.summary.addRaw(summary).write();
             
-            // Изпрати към n8n
-            await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                agents: agentStatus,
-                timestamp: new Date().toISOString()
-              })
-            });
+            core.setOutput('agent_status', JSON.stringify(agentStatus));
+
+      - name: Изпрати към n8n
+        if: vars.N8N_WEBHOOK_URL != ''
+        env:
+          N8N_WEBHOOK_URL: ${{ vars.N8N_WEBHOOK_URL }}
+          AGENT_STATUS: ${{ steps.check_agents.outputs.agent_status }}
+        run: |
+          if [ -n "${N8N_WEBHOOK_URL}" ]; then
+            curl -X POST "${N8N_WEBHOOK_URL}/webhook/agent-status" \
+              -H "Content-Type: application/json" \
+              -d "${AGENT_STATUS}"
+          else
+            echo "N8N_WEBHOOK_URL not configured, skipping webhook"
+          fi
 
   check-stale-prs:
     runs-on: ubuntu-latest
@@ -151,7 +158,7 @@ jobs:
   create-daily-report:
     runs-on: ubuntu-latest
     name: Дневен доклад
-    if: github.event.schedule == '0 9 * * *' || github.event_name == 'workflow_dispatch'
+    if: (github.event.schedule == '0 9 * * *') || (github.event_name == 'workflow_dispatch')
     
     steps:
       - name: Checkout код
