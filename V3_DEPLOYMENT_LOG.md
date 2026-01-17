@@ -22,22 +22,28 @@ psql "postgresql://postgres.ansiaiuaygcfztabtknl:Zdraveibobi12#@aws-0-eu-central
 
 ---
 
-## ⏳ Phase 2: Import Workflows to N8N (Pending)
+## ✅ Phase 2: Import Workflows to N8N (Completed)
 
-### Step 2.1: SSH to VPS
-### Step 2.2: Import SMS Worker
-### Step 2.3: Import Email Worker  
-### Step 2.4: Import Main V3 Workflow
+**Status**: 🟢 Verified
+
+### Verified Workflows:
+- ✅ **DuoPlus SMS Worker (Improved)**
+- ✅ **Email OTP Extractor**
+- ✅ **Wallester Registration Agent V3 (Fixed Timing)**
 
 ---
 
-## ⏳ Phase 3: Configure Credentials (Pending)
+## 🟡 Phase 3: Configure Credentials (IN PROGRESS)
 
-### Step 3.1: Supabase
-### Step 3.2: Airtop
-### Step 3.3: Gmail OAuth2
-### Step 3.4: Slack
-### Step 3.5: DuoPlus
+**ACTION REQUIRED**: Automatic configuration not possible via API (405 Error).
+👉 **Please follow [STEP_3_CREDENTIALS_GUIDE.md](STEP_3_CREDENTIALS_GUIDE.md) manually.**
+
+### Step 3.1: Supabase (V3 Main Workflow ONLY)
+*Note: SMS and Email workers do not need Supabase credentials.*
+### Step 3.2: Airtop (Required)
+### Step 3.3: Gmail OAuth2 (Required)
+### Step 3.4: Slack (Optional)
+
 
 ---
 
