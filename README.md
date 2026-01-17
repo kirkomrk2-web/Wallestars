@@ -32,6 +32,19 @@
 
 ---
 
+## 🤖 New: Automated PR Management System
+
+**Just Added!** Comprehensive automation system for PR management and repository consolidation:
+
+- ✅ **Automated PR Monitoring**: Every PR checked automatically every 5 minutes
+- ✅ **AI-Powered Code Review**: Quality, security, and performance analysis with 0-100 scoring
+- ✅ **Repository Consolidation**: Automated branch management and merge planning
+- ✅ **MCP Integration**: Full Model Context Protocol support for AI capabilities
+
+**Quick Start:** See [AUTOMATION_QUICK_START.md](AUTOMATION_QUICK_START.md) for details.
+
+---
+
 ## 🎯 Overview
 
 **Wallestars Control Center** is a cutting-edge platform that brings Claude AI's powerful capabilities to Linux desktop control and Android device automation. With a beautiful, professional UI and real-time visualization, you can:
@@ -41,6 +54,7 @@
 - 📱 Automate Android devices via ADB
 - 📊 Monitor system metrics in real-time
 - 🎨 Enjoy a stunning, responsive interface
+- 🤖 **NEW:** Automated PR management and AI-powered code review
 
 ---
 
@@ -331,6 +345,22 @@ Security is a top priority for Wallestars Control Center. We follow industry bes
 - Keep dependencies updated with `npm audit`
 
 For security concerns, see our [Security Policy](SECURITY.md).
+
+---
+
+## 📚 Automation & Development
+
+### New Automation System
+- **[AUTOMATION_QUICK_START.md](AUTOMATION_QUICK_START.md)** - Quick start guide for the new PR automation system
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Complete implementation details and features
+- **[CONSOLIDATION_ROADMAP.md](CONSOLIDATION_ROADMAP.md)** - 5-week plan for repository consolidation
+- **[MCP_PR_INTEGRATION.md](.github/MCP_PR_INTEGRATION.md)** - MCP integration guide for automation
+
+### Existing Documentation
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design
+- **[AUTOMATION_SYSTEM.md](.github/AUTOMATION_SYSTEM.md)** - Existing automation documentation
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Testing procedures
 
 ---
 
