@@ -1,0 +1,334 @@
+{
+  "name": "VPS Health Monitoring",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "command": "df -h / | awk 'NR==2 {print $5}' | sed 's/%//'"
+      },
+      "id": "check-disk",
+      "name": "Check Disk Usage",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "command": "free -m | awk 'NR==2 {printf \"%.0f\", $3/$2*100}'"
+      },
+      "id": "check-memory",
+      "name": "Check Memory Usage",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "command": "uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//'"
+      },
+      "id": "check-cpu",
+      "name": "Check CPU Load",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "command": "systemctl is-active docker || echo 'inactive'"
+      },
+      "id": "check-docker",
+      "name": "Check Docker Status",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "command": "pm2 jlist | jq -r '.[] | select(.name==\"wallestars\") | .pm2_env.status' 2>/dev/null || echo 'not_found'"
+      },
+      "id": "check-wallestars",
+      "name": "Check Wallestars Status",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "functionCode": "const diskUsage = parseInt($node[\"Check Disk Usage\"].json.stdout.trim());\nconst memoryUsage = parseInt($node[\"Check Memory Usage\"].json.stdout.trim());\nconst cpuLoad = parseFloat($node[\"Check CPU Load\"].json.stdout.trim());\nconst dockerStatus = $node[\"Check Docker Status\"].json.stdout.trim();\nconst wallestarsStatus = $node[\"Check Wallestars Status\"].json.stdout.trim();\n\nconst timestamp = new Date().toISOString();\nconst alerts = [];\n\n// Check thresholds\nif (diskUsage > 80) {\n  alerts.push({\n    severity: 'warning',\n    component: 'disk',\n    message: `Disk usage is ${diskUsage}% (threshold: 80%)`,\n    value: diskUsage\n  });\n}\n\nif (diskUsage > 90) {\n  alerts.push({\n    severity: 'critical',\n    component: 'disk',\n    message: `Disk usage is CRITICAL at ${diskUsage}% (threshold: 90%)`,\n    value: diskUsage\n  });\n}\n\nif (memoryUsage > 85) {\n  alerts.push({\n    severity: 'warning',\n    component: 'memory',\n    message: `Memory usage is ${memoryUsage}% (threshold: 85%)`,\n    value: memoryUsage\n  });\n}\n\nif (cpuLoad > 4.0) {\n  alerts.push({\n    severity: 'warning',\n    component: 'cpu',\n    message: `CPU load is ${cpuLoad} (threshold: 4.0 on 2-core system)`,\n    value: cpuLoad\n  });\n}\n\nif (dockerStatus !== 'active') {\n  alerts.push({\n    severity: 'critical',\n    component: 'docker',\n    message: `Docker service is ${dockerStatus} (expected: active)`,\n    value: dockerStatus\n  });\n}\n\nif (wallestarsStatus !== 'online') {\n  alerts.push({\n    severity: 'critical',\n    component: 'wallestars',\n    message: `Wallestars application is ${wallestarsStatus} (expected: online)`,\n    value: wallestarsStatus\n  });\n}\n\nconst healthData = {\n  timestamp,\n  vps: {\n    disk_usage_percent: diskUsage,\n    memory_usage_percent: memoryUsage,\n    cpu_load: cpuLoad,\n    docker_status: dockerStatus,\n    wallestars_status: wallestarsStatus\n  },\n  health_status: alerts.length === 0 ? 'healthy' : (alerts.some(a => a.severity === 'critical') ? 'critical' : 'warning'),\n  alerts: alerts,\n  alert_count: alerts.length\n};\n\nreturn [healthData];"
+      },
+      "id": "process-data",
+      "name": "Process Health Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.alert_count}}",
+              "value2": 0,
+              "operation": "larger"
+            }
+          ]
+        }
+      },
+      "id": "has-alerts",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "=🚨 *VPS Health Alert*\n\n*Status*: {{$json.health_status}}\n*Time*: {{$json.timestamp}}\n\n*Metrics*:\n• Disk: {{$json.vps.disk_usage_percent}}%\n• Memory: {{$json.vps.memory_usage_percent}}%\n• CPU Load: {{$json.vps.cpu_load}}\n• Docker: {{$json.vps.docker_status}}\n• Wallestars: {{$json.vps.wallestars_status}}\n\n*Alerts* ({{$json.alert_count}}):\n{{$json.alerts.map(a => `• [${a.severity.toUpperCase()}] ${a.message}`).join('\\n')}}\n\nCheck VPS immediately!",
+        "additionalFields": {
+          "parseMode": "Markdown"
+        }
+      },
+      "id": "send-telegram",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-creds",
+          "name": "Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "teamId": "1eb31411-c06d-45e4-b268-12c463470fb8",
+        "title": "=VPS Health Alert: {{$json.health_status}}",
+        "description": "=Automated alert from VPS monitoring:\n\n**Metrics:**\n- Disk Usage: {{$json.vps.disk_usage_percent}}%\n- Memory Usage: {{$json.vps.memory_usage_percent}}%\n- CPU Load: {{$json.vps.cpu_load}}\n- Docker: {{$json.vps.docker_status}}\n- Wallestars: {{$json.vps.wallestars_status}}\n\n**Alerts:**\n{{$json.alerts.map(a => `- [${a.severity.toUpperCase()}] ${a.message}`).join('\\n')}}\n\nTimestamp: {{$json.timestamp}}",
+        "priority": "={{$json.health_status === 'critical' ? 1 : 2}}",
+        "state": "backlog"
+      },
+      "id": "create-linear-issue",
+      "name": "Create Linear Issue",
+      "type": "n8n-nodes-base.linear",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "linearApi": {
+          "id": "linear-creds",
+          "name": "Linear"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "vps_health_logs",
+        "columns": "timestamp, disk_usage, memory_usage, cpu_load, docker_status, wallestars_status, health_status, alert_count",
+        "values": "={{$json.timestamp}}, {{$json.vps.disk_usage_percent}}, {{$json.vps.memory_usage_percent}}, {{$json.vps.cpu_load}}, {{$json.vps.docker_status}}, {{$json.vps.wallestars_status}}, {{$json.health_status}}, {{$json.alert_count}}"
+      },
+      "id": "log-to-supabase",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1050, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-creds",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Always log successful checks\nreturn [$json];"
+      },
+      "id": "always-log",
+      "name": "Always Log",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 600]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Check Disk Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Memory Usage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check CPU Load",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Docker Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Wallestars Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Disk Usage": {
+      "main": [
+        [
+          {
+            "node": "Process Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Memory Usage": {
+      "main": [
+        [
+          {
+            "node": "Process Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check CPU Load": {
+      "main": [
+        [
+          {
+            "node": "Process Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Docker Status": {
+      "main": [
+        [
+          {
+            "node": "Process Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Wallestars Status": {
+      "main": [
+        [
+          {
+            "node": "Process Health Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Health Data": {
+      "main": [
+        [
+          {
+            "node": "Has Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Linear Issue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Always Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Linear Issue": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Always Log": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["monitoring", "vps", "health", "automated"],
+  "triggerCount": 1,
+  "updatedAt": "2026-01-05T00:00:00.000Z",
+  "versionId": "1"
+}

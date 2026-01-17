@@ -1,0 +1,201 @@
+{
+  "name": "Wallestars VPS Automation Hub",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vps-automation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "wallestars-vps-hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming request\nconst action = $input.item.json.body.action;\nconst params = $input.item.json.body.params || {};\n\nreturn [\n  {\n    json: {\n      action: action,\n      params: params,\n      timestamp: new Date().toISOString(),\n      vps: {\n        host: 'srv1201204.hstgr.cloud',\n        ip: '72.61.154.188'\n      }\n    }\n  }\n];"
+      },
+      "name": "Parse Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "operation": "equals",
+              "value2": "health_check"
+            }
+          ]
+        }
+      },
+      "name": "Route Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "command": "docker ps --format '{{.Names}}: {{.Status}}'"
+      },
+      "name": "Check Docker Services",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "command": "df -h | grep -E '^/dev/'"
+      },
+      "name": "Check Disk Space",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "command": "free -h"
+      },
+      "name": "Check Memory",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate health data\nconst items = $input.all();\nconst health = {\n  timestamp: new Date().toISOString(),\n  vps: 'srv1201204.hstgr.cloud',\n  services: {},\n  resources: {}\n};\n\nitems.forEach(item => {\n  if (item.json.docker) {\n    health.services = item.json.docker;\n  }\n  if (item.json.disk) {\n    health.resources.disk = item.json.disk;\n  }\n  if (item.json.memory) {\n    health.resources.memory = item.json.memory;\n  }\n});\n\nhealth.status = 'healthy';\n\nreturn [{ json: health }];"
+      },
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Check Docker Services",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Disk Space",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Docker Services": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Disk Space": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Memory": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "id": "wallestars-vps-automation",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "srv1201204"
+  },
+  "tags": [
+    {
+      "name": "wallestars",
+      "id": "1"
+    },
+    {
+      "name": "vps",
+      "id": "2"
+    },
+    {
+      "name": "automation",
+      "id": "3"
+    }
+  ]
+}

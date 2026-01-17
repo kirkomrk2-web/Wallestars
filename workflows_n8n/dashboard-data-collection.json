@@ -1,0 +1,331 @@
+{
+  "name": "Dashboard Data Collection",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-collect",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 450]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://n8n.srv1201204.hstgr.cloud/api/v1/workflows",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi"
+      },
+      "id": "get-n8n-workflows",
+      "name": "Get n8n Workflows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 250],
+      "credentials": {
+        "n8nApi": {
+          "id": "n8n-api-creds",
+          "name": "n8n API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "teamId": "1eb31411-c06d-45e4-b268-12c463470fb8",
+        "returnAll": false,
+        "limit": 50
+      },
+      "id": "get-linear-issues",
+      "name": "Get Linear Issues",
+      "type": "n8n-nodes-base.linear",
+      "typeVersion": 1,
+      "position": [450, 350]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/{{$env.GITHUB_USER}}/{{$env.GITHUB_REPO}}/commits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {
+          "qs": {
+            "per_page": 10
+          }
+        }
+      },
+      "id": "get-github-commits",
+      "name": "Get GitHub Commits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 450],
+      "credentials": {
+        "githubApi": {
+          "id": "github-api-creds",
+          "name": "GitHub"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "pm2 jlist"
+      },
+      "id": "get-pm2-status",
+      "name": "Get PM2 Status",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 550]
+    },
+    {
+      "parameters": {
+        "command": "docker ps --format '{{json .}}'"
+      },
+      "id": "get-docker-containers",
+      "name": "Get Docker Containers",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [450, 650]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM vps_health_logs WHERE timestamp > NOW() - INTERVAL '24 hours' ORDER BY timestamp DESC LIMIT 100"
+      },
+      "id": "get-health-logs",
+      "name": "Get Health Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [450, 750],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-creds",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process n8n workflows\nconst workflows = $node[\"Get n8n Workflows\"].json.data || [];\nconst workflowStats = {\n  total: workflows.length,\n  active: workflows.filter(w => w.active).length,\n  inactive: workflows.filter(w => !w.active).length,\n  workflows: workflows.map(w => ({\n    id: w.id,\n    name: w.name,\n    active: w.active,\n    updatedAt: w.updatedAt\n  }))\n};\n\n// Process Linear issues\nconst issues = $node[\"Get Linear Issues\"].json || [];\nconst issueStats = {\n  total: issues.length,\n  byStatus: {},\n  byPriority: {},\n  recent: issues.slice(0, 10).map(i => ({\n    id: i.id,\n    title: i.title,\n    state: i.state?.name,\n    priority: i.priority,\n    updatedAt: i.updatedAt\n  }))\n};\n\nissues.forEach(issue => {\n  const status = issue.state?.name || 'unknown';\n  const priority = issue.priority || 0;\n  \n  issueStats.byStatus[status] = (issueStats.byStatus[status] || 0) + 1;\n  issueStats.byPriority[priority] = (issueStats.byPriority[priority] || 0) + 1;\n});\n\n// Process GitHub commits\nconst commits = $node[\"Get GitHub Commits\"].json || [];\nconst commitStats = {\n  total: commits.length,\n  recent: commits.slice(0, 5).map(c => ({\n    sha: c.sha?.substring(0, 7),\n    message: c.commit?.message?.split('\\n')[0],\n    author: c.commit?.author?.name,\n    date: c.commit?.author?.date\n  }))\n};\n\n// Process PM2 status\nlet pm2Apps = [];\ntry {\n  pm2Apps = JSON.parse($node[\"Get PM2 Status\"].json.stdout || '[]');\n} catch (e) {\n  pm2Apps = [];\n}\n\nconst pm2Stats = {\n  total: pm2Apps.length,\n  online: pm2Apps.filter(a => a.pm2_env?.status === 'online').length,\n  stopped: pm2Apps.filter(a => a.pm2_env?.status === 'stopped').length,\n  errored: pm2Apps.filter(a => a.pm2_env?.status === 'errored').length,\n  apps: pm2Apps.map(a => ({\n    name: a.name,\n    status: a.pm2_env?.status,\n    memory: Math.round(a.monit?.memory / 1024 / 1024) + 'MB',\n    cpu: a.monit?.cpu + '%',\n    uptime: Math.round((Date.now() - a.pm2_env?.pm_uptime) / 1000 / 60) + 'm'\n  }))\n};\n\n// Process Docker containers\nconst dockerLines = ($node[\"Get Docker Containers\"].json.stdout || '').split('\\n').filter(l => l.trim());\nconst dockerContainers = dockerLines.map(line => {\n  try {\n    return JSON.parse(line);\n  } catch {\n    return null;\n  }\n}).filter(Boolean);\n\nconst dockerStats = {\n  total: dockerContainers.length,\n  running: dockerContainers.filter(c => c.State === 'running').length,\n  containers: dockerContainers.map(c => ({\n    name: c.Names,\n    image: c.Image,\n    status: c.Status,\n    ports: c.Ports\n  }))\n};\n\n// Process health logs\nconst healthLogs = $node[\"Get Health Logs\"].json || [];\nconst healthStats = {\n  total: healthLogs.length,\n  healthy: healthLogs.filter(l => l.health_status === 'healthy').length,\n  warning: healthLogs.filter(l => l.health_status === 'warning').length,\n  critical: healthLogs.filter(l => l.health_status === 'critical').length,\n  averages: {\n    disk: healthLogs.reduce((sum, l) => sum + (l.disk_usage || 0), 0) / healthLogs.length || 0,\n    memory: healthLogs.reduce((sum, l) => sum + (l.memory_usage || 0), 0) / healthLogs.length || 0,\n    cpu: healthLogs.reduce((sum, l) => sum + (l.cpu_load || 0), 0) / healthLogs.length || 0\n  }\n};\n\n// Compile dashboard data\nconst dashboardData = {\n  timestamp: new Date().toISOString(),\n  vps: {\n    hostname: 'srv1201204.hstgr.cloud',\n    ip: '72.61.154.188',\n    location: 'Germany (Frankfurt)',\n    expiration: '2026-01-15'\n  },\n  workflows: workflowStats,\n  issues: issueStats,\n  commits: commitStats,\n  pm2: pm2Stats,\n  docker: dockerStats,\n  health: healthStats\n};\n\nreturn [dashboardData];"
+      },
+      "id": "aggregate-data",
+      "name": "Aggregate Dashboard Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 450]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "dashboard_snapshots",
+        "columns": "timestamp, data",
+        "values": "={{$json.timestamp}}, {{JSON.stringify($json)}}"
+      },
+      "id": "save-snapshot",
+      "name": "Save Dashboard Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 450],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-creds",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard-data",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-endpoint",
+      "name": "Dashboard API Endpoint",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 650],
+      "webhookId": "dashboard-data-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM dashboard_snapshots ORDER BY timestamp DESC LIMIT 1"
+      },
+      "id": "get-latest-snapshot",
+      "name": "Get Latest Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [450, 850],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-creds",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json.data}}"
+      },
+      "id": "respond-with-data",
+      "name": "Respond with Dashboard Data",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 850]
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Get n8n Workflows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Linear Issues",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get GitHub Commits",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get PM2 Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Docker Containers",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Health Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get n8n Workflows": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Linear Issues": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Commits": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get PM2 Status": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Docker Containers": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Health Logs": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Dashboard Data": {
+      "main": [
+        [
+          {
+            "node": "Save Dashboard Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard API Endpoint": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Respond with Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["dashboard", "data-collection", "monitoring"],
+  "triggerCount": 2,
+  "updatedAt": "2026-01-05T00:00:00.000Z",
+  "versionId": "1"
+}
