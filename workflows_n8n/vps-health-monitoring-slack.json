@@ -1,0 +1,322 @@
+{
+    "name": "VPS Health Monitoring (Slack)",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 5
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger",
+            "name": "Every 5 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "df -h / | awk 'NR==2 {print $5}' | sed 's/%//'"
+            },
+            "id": "check-disk",
+            "name": "Check Disk Usage",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "command": "free -m | awk 'NR==2 {printf \"%.0f\", $3/$2*100}'"
+            },
+            "id": "check-memory",
+            "name": "Check Memory Usage",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "command": "uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//'"
+            },
+            "id": "check-cpu",
+            "name": "Check CPU Load",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "command": "systemctl is-active docker 2>/dev/null || echo 'inactive'"
+            },
+            "id": "check-docker",
+            "name": "Check Docker Status",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "command": "pm2 jlist 2>/dev/null | jq -r '.[] | select(.name==\"n8n\") | .pm2_env.status' 2>/dev/null || echo 'active'"
+            },
+            "id": "check-n8n",
+            "name": "Check N8N Status",
+            "type": "n8n-nodes-base.executeCommand",
+            "typeVersion": 1,
+            "position": [
+                450,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const diskUsage = parseInt($node[\"Check Disk Usage\"].json.stdout?.trim() || '0');\nconst memoryUsage = parseInt($node[\"Check Memory Usage\"].json.stdout?.trim() || '0');\nconst cpuLoad = parseFloat($node[\"Check CPU Load\"].json.stdout?.trim() || '0');\nconst dockerStatus = $node[\"Check Docker Status\"].json.stdout?.trim() || 'unknown';\nconst n8nStatus = $node[\"Check N8N Status\"].json.stdout?.trim() || 'unknown';\n\nconst timestamp = new Date().toISOString();\nconst alerts = [];\n\nif (diskUsage > 80) {\n  alerts.push({ severity: 'warning', component: 'disk', message: `Disk usage is ${diskUsage}% (threshold: 80%)` });\n}\nif (diskUsage > 90) {\n  alerts.push({ severity: 'critical', component: 'disk', message: `Disk CRITICAL at ${diskUsage}%` });\n}\nif (memoryUsage > 85) {\n  alerts.push({ severity: 'warning', component: 'memory', message: `Memory usage is ${memoryUsage}% (threshold: 85%)` });\n}\nif (cpuLoad > 4.0) {\n  alerts.push({ severity: 'warning', component: 'cpu', message: `CPU load is ${cpuLoad} (threshold: 4.0)` });\n}\nif (dockerStatus !== 'active') {\n  alerts.push({ severity: 'critical', component: 'docker', message: `Docker is ${dockerStatus}` });\n}\n\nreturn [{\n  timestamp,\n  disk_usage: diskUsage,\n  memory_usage: memoryUsage,\n  cpu_load: cpuLoad,\n  docker_status: dockerStatus,\n  n8n_status: n8nStatus,\n  health_status: alerts.length === 0 ? 'healthy' : (alerts.some(a => a.severity === 'critical') ? 'critical' : 'warning'),\n  alerts: alerts,\n  alert_count: alerts.length\n}];"
+            },
+            "id": "process-data",
+            "name": "Process Health Data",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                650,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.alert_count}}",
+                            "value2": 0,
+                            "operation": "larger"
+                        }
+                    ]
+                }
+            },
+            "id": "has-alerts",
+            "name": "Has Alerts?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                850,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "url": "={{$env.SLACK_WEBHOOK_URL}}",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"🚨 VPS Health Alert\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Status*: {{$json.health_status}}\\n*Time*: {{$json.timestamp}}\\n\\n*Metrics*:\\n• Disk: {{$json.disk_usage}}%\\n• Memory: {{$json.memory_usage}}%\\n• CPU: {{$json.cpu_load}}\\n• Docker: {{$json.docker_status}}\\n• N8N: {{$json.n8n_status}}\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Alerts ({{$json.alert_count}})*:\\n{{$json.alerts.map(a => `• [${a.severity.toUpperCase()}] ${a.message}`).join('\\\\n')}}\"\n      }\n    }\n  ]\n}"
+            },
+            "id": "send-slack",
+            "name": "Send Slack Alert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "INSERT INTO vps_health_logs (timestamp, disk_usage, memory_usage, cpu_load, docker_status, wallestars_status, health_status, alert_count) VALUES ('{{$json.timestamp}}', {{$json.disk_usage}}, {{$json.memory_usage}}, {{$json.cpu_load}}, '{{$json.docker_status}}', '{{$json.n8n_status}}', '{{$json.health_status}}', {{$json.alert_count}})"
+            },
+            "id": "log-to-supabase",
+            "name": "Log to Supabase",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2,
+            "position": [
+                1050,
+                500
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "supabase-postgres",
+                    "name": "Supabase Postgres"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "return [$json];"
+            },
+            "id": "healthy-path",
+            "name": "Healthy - Log Only",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                600
+            ]
+        }
+    ],
+    "connections": {
+        "Every 5 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Check Disk Usage",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Check Memory Usage",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Check CPU Load",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Check Docker Status",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Check N8N Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Disk Usage": {
+            "main": [
+                [
+                    {
+                        "node": "Process Health Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Memory Usage": {
+            "main": [
+                [
+                    {
+                        "node": "Process Health Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check CPU Load": {
+            "main": [
+                [
+                    {
+                        "node": "Process Health Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Docker Status": {
+            "main": [
+                [
+                    {
+                        "node": "Process Health Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check N8N Status": {
+            "main": [
+                [
+                    {
+                        "node": "Process Health Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Health Data": {
+            "main": [
+                [
+                    {
+                        "node": "Has Alerts?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Alerts?": {
+            "main": [
+                [
+                    {
+                        "node": "Send Slack Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Healthy - Log Only",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Slack Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Log to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Healthy - Log Only": {
+            "main": [
+                [
+                    {
+                        "node": "Log to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "tags": [
+        "monitoring",
+        "vps",
+        "health",
+        "slack"
+    ],
+    "triggerCount": 1
+}
