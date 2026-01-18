@@ -92,16 +92,20 @@ jobs:
             }
             
             await core.summary.addRaw(summary).write();
+
+                        // Изпрати към n8n само ако URL-ът е настроен
+                                    if (process.env.N8N_WEBHOOK_URL) {
             
             // Изпрати към n8n
-            await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                agents: agentStatus,
-                timestamp: new Date().toISOString()
-              })
-            });
+              await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/agent-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  agents: agentStatus,
+                  timestamp: new Date().toISOString()
+                })
+              });
+                          }
 
   check-stale-prs:
     runs-on: ubuntu-latest
