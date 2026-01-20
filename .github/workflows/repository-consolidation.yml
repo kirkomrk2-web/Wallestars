@@ -1,0 +1,391 @@
+name: Repository Consolidation Manager
+
+on:
+  schedule:
+    # Run daily at midnight to review consolidation status
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Consolidation action'
+        required: true
+        type: choice
+        options:
+          - analyze
+          - create_plan
+          - merge_branches
+          - archive_old
+      target_branches:
+        description: 'Target branches (comma-separated)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  analyze-repository-structure:
+    runs-on: ubuntu-latest
+    name: Analyze Repository Structure
+    outputs:
+      total_branches: ${{ steps.analyze.outputs.total_branches }}
+      stale_branches: ${{ steps.analyze.outputs.stale_branches }}
+      active_branches: ${{ steps.analyze.outputs.active_branches }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze branches
+        id: analyze
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get all branches
+            const { data: branches } = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            console.log(`Total branches: ${branches.length}`);
+            
+            // Categorize branches
+            const categorized = {
+              copilot: [],
+              claude: [],
+              feature: [],
+              bugfix: [],
+              main: [],
+              other: []
+            };
+            
+            const staleBranches = [];
+            const activeBranches = [];
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            for (const branch of branches) {
+              // Categorize by prefix
+              if (branch.name.startsWith('copilot/')) {
+                categorized.copilot.push(branch.name);
+              } else if (branch.name.startsWith('claude/')) {
+                categorized.claude.push(branch.name);
+              } else if (branch.name.startsWith('feature/')) {
+                categorized.feature.push(branch.name);
+              } else if (branch.name.startsWith('bugfix/') || branch.name.startsWith('fix/')) {
+                categorized.bugfix.push(branch.name);
+              } else if (branch.name === 'main' || branch.name === 'master' || branch.name === 'develop') {
+                categorized.main.push(branch.name);
+              } else {
+                categorized.other.push(branch.name);
+              }
+              
+              // Get commit info
+              try {
+                const { data: commit } = await github.rest.repos.getCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: branch.commit.sha
+                });
+                
+                const commitDate = new Date(commit.commit.author.date);
+                
+                if (commitDate < thirtyDaysAgo) {
+                  staleBranches.push({
+                    name: branch.name,
+                    lastCommit: commit.commit.author.date,
+                    message: commit.commit.message
+                  });
+                } else {
+                  activeBranches.push({
+                    name: branch.name,
+                    lastCommit: commit.commit.author.date,
+                    message: commit.commit.message
+                  });
+                }
+              } catch (error) {
+                console.log(`Error getting commit for ${branch.name}: ${error.message}`);
+              }
+            }
+            
+            // Set outputs
+            core.setOutput('total_branches', branches.length);
+            core.setOutput('stale_branches', staleBranches.length);
+            core.setOutput('active_branches', activeBranches.length);
+            
+            // Create summary
+            let summary = `# 📊 Repository Structure Analysis\n\n`;
+            summary += `**Total Branches:** ${branches.length}\n`;
+            summary += `**Active Branches (< 30 days):** ${activeBranches.length}\n`;
+            summary += `**Stale Branches (> 30 days):** ${staleBranches.length}\n\n`;
+            
+            summary += `## Branch Categories\n\n`;
+            summary += `| Category | Count | Branches |\n`;
+            summary += `|----------|-------|----------|\n`;
+            summary += `| Copilot | ${categorized.copilot.length} | ${categorized.copilot.slice(0, 3).join(', ')}${categorized.copilot.length > 3 ? '...' : ''} |\n`;
+            summary += `| Claude | ${categorized.claude.length} | ${categorized.claude.slice(0, 3).join(', ')}${categorized.claude.length > 3 ? '...' : ''} |\n`;
+            summary += `| Feature | ${categorized.feature.length} | ${categorized.feature.slice(0, 3).join(', ')}${categorized.feature.length > 3 ? '...' : ''} |\n`;
+            summary += `| Bugfix | ${categorized.bugfix.length} | ${categorized.bugfix.slice(0, 3).join(', ')}${categorized.bugfix.length > 3 ? '...' : ''} |\n`;
+            summary += `| Main | ${categorized.main.length} | ${categorized.main.join(', ')} |\n`;
+            summary += `| Other | ${categorized.other.length} | ${categorized.other.slice(0, 3).join(', ')}${categorized.other.length > 3 ? '...' : ''} |\n`;
+            
+            summary += `\n## Stale Branches\n\n`;
+            if (staleBranches.length > 0) {
+              summary += `| Branch | Last Commit | Message |\n`;
+              summary += `|--------|-------------|----------|\n`;
+              for (const branch of staleBranches.slice(0, 10)) {
+                const shortMsg = branch.message.split('\n')[0].substring(0, 50);
+                summary += `| ${branch.name} | ${branch.lastCommit} | ${shortMsg}... |\n`;
+              }
+              if (staleBranches.length > 10) {
+                summary += `\n_... and ${staleBranches.length - 10} more_\n`;
+              }
+            } else {
+              summary += `No stale branches found.\n`;
+            }
+            
+            await core.summary.addRaw(summary).write();
+            
+            // Store for next job
+            core.exportVariable('CATEGORIZED_BRANCHES', JSON.stringify(categorized));
+            core.exportVariable('STALE_BRANCHES', JSON.stringify(staleBranches));
+
+  create-consolidation-plan:
+    needs: analyze-repository-structure
+    runs-on: ubuntu-latest
+    name: Create Consolidation Plan
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate consolidation plan
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const total = '${{ needs.analyze-repository-structure.outputs.total_branches }}';
+            const stale = '${{ needs.analyze-repository-structure.outputs.stale_branches }}';
+            const active = '${{ needs.analyze-repository-structure.outputs.active_branches }}';
+            
+            const planBody = [
+              `# 🗂️ Repository Consolidation Plan`,
+              '',
+              `## Current State`,
+              `- **Total Branches:** ${total}`,
+              `- **Active Branches:** ${active}`,
+              `- **Stale Branches:** ${stale}`,
+              '',
+              `## Target Structure (2-3 Repositories)`,
+              '',
+              `### Repository 1: Wallestars-Core`,
+              `**Purpose:** Main application codebase`,
+              `**Contents:**`,
+              `- Source code (src/)`,
+              `- Server code (server/)`,
+              `- Public assets (public/)`,
+              `- Configuration files`,
+              `- Main README and docs`,
+              '',
+              `**Branch Strategy:**`,
+              `- \`main\` - Production-ready code`,
+              `- \`develop\` - Integration branch`,
+              `- \`feature/*\` - Feature development`,
+              `- \`hotfix/*\` - Critical fixes`,
+              '',
+              `### Repository 2: Wallestars-Automation`,
+              `**Purpose:** Automation workflows and agent configurations`,
+              `**Contents:**`,
+              `- GitHub Actions workflows (.github/workflows/)`,
+              `- N8N workflow definitions (n8n-workflows/)`,
+              `- Agent task definitions (.github/TASKS/)`,
+              `- Supabase schemas (supabase/)`,
+              `- Automation documentation`,
+              '',
+              `**Branch Strategy:**`,
+              `- \`main\` - Production workflows`,
+              `- \`staging\` - Testing new workflows`,
+              '',
+              `### Repository 3: Wallestars-Docs (Optional)`,
+              `**Purpose:** Comprehensive documentation`,
+              `**Contents:**`,
+              `- Architecture docs`,
+              `- Deployment guides`,
+              `- API documentation`,
+              `- MCP integration guides`,
+              `- Contributing guidelines`,
+              '',
+              `## Consolidation Steps`,
+              '',
+              `### Phase 1: Merge Active PRs`,
+              `- [ ] Review and merge PR #1 (sseRouter fix)`,
+              `- [ ] Review and merge PR #3 (workflow fixes)`,
+              `- [ ] Close PR #2 (no changes needed)`,
+              `- [ ] Complete PR #4 (this orchestration work)`,
+              '',
+              `### Phase 2: Branch Cleanup`,
+              `- [ ] Archive stale branches (${stale} branches)`,
+              `- [ ] Merge completed feature branches`,
+              `- [ ] Consolidate duplicate work`,
+              `- [ ] Remove obsolete branches`,
+              '',
+              `### Phase 3: Repository Split`,
+              `- [ ] Create Wallestars-Automation repository`,
+              `- [ ] Move workflow files to new repo`,
+              `- [ ] Set up cross-repo workflows`,
+              `- [ ] Update documentation references`,
+              '',
+              `### Phase 4: Documentation Update`,
+              `- [ ] Update README files`,
+              `- [ ] Create repository navigation guide`,
+              `- [ ] Document new workflow`,
+              `- [ ] Update CI/CD configurations`,
+              '',
+              `## Benefits`,
+              `- ✅ Cleaner repository structure`,
+              `- ✅ Easier navigation and maintenance`,
+              `- ✅ Isolated automation updates`,
+              `- ✅ Better separation of concerns`,
+              `- ✅ Faster CI/CD pipelines`,
+              '',
+              `## Timeline`,
+              `- **Week 1:** Phase 1 - Merge active PRs`,
+              `- **Week 2:** Phase 2 - Branch cleanup`,
+              `- **Week 3:** Phase 3 - Repository split`,
+              `- **Week 4:** Phase 4 - Documentation`,
+              '',
+              `---`,
+              `_Generated by Repository Consolidation Manager_`
+            ].join('\n');
+            
+            // Create issue with plan
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🗂️ Repository Consolidation Plan - ${new Date().toLocaleDateString()}`,
+              body: planBody,
+              labels: ['consolidation', 'planning', 'automated']
+            });
+            
+            console.log(`Consolidation plan created: Issue #${issue.number}`);
+
+  identify-merge-candidates:
+    needs: analyze-repository-structure
+    runs-on: ubuntu-latest
+    name: Identify Merge Candidates
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find mergeable branches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: branches } = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+            
+            const mergeCandidates = [];
+            
+            for (const branch of branches) {
+              // Skip protected branches
+              if (['main', 'master', 'develop'].includes(branch.name)) {
+                continue;
+              }
+              
+              // Check if branch has an associated PR
+              const associatedPR = prs.find(pr => pr.head.ref === branch.name);
+              
+              if (associatedPR && associatedPR.state === 'closed' && associatedPR.merged_at) {
+                mergeCandidates.push({
+                  branch: branch.name,
+                  status: 'merged',
+                  pr: associatedPR.number,
+                  action: 'delete'
+                });
+              } else if (associatedPR && associatedPR.state === 'open') {
+                mergeCandidates.push({
+                  branch: branch.name,
+                  status: 'open_pr',
+                  pr: associatedPR.number,
+                  action: 'review'
+                });
+              } else {
+                // Check if branch is ahead/behind main
+                try {
+                  const { data: comparison } = await github.rest.repos.compareCommits({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    base: 'main',
+                    head: branch.name
+                  });
+                  
+                  if (comparison.ahead_by === 0) {
+                    mergeCandidates.push({
+                      branch: branch.name,
+                      status: 'up_to_date',
+                      pr: null,
+                      action: 'delete'
+                    });
+                  } else {
+                    mergeCandidates.push({
+                      branch: branch.name,
+                      status: 'has_changes',
+                      pr: null,
+                      action: 'create_pr'
+                    });
+                  }
+                } catch (error) {
+                  console.log(`Error comparing ${branch.name}: ${error.message}`);
+                }
+              }
+            }
+            
+            // Create summary
+            let summary = `# 🔀 Merge Candidate Analysis\n\n`;
+            summary += `**Total Candidates:** ${mergeCandidates.length}\n\n`;
+            
+            const byAction = {
+              delete: mergeCandidates.filter(c => c.action === 'delete'),
+              review: mergeCandidates.filter(c => c.action === 'review'),
+              create_pr: mergeCandidates.filter(c => c.action === 'create_pr')
+            };
+            
+            summary += `| Action | Count |\n`;
+            summary += `|--------|-------|\n`;
+            summary += `| Delete (merged/up-to-date) | ${byAction.delete.length} |\n`;
+            summary += `| Review (open PRs) | ${byAction.review.length} |\n`;
+            summary += `| Create PR (has changes) | ${byAction.create_pr.length} |\n`;
+            
+            summary += `\n## Branches to Delete\n\n`;
+            for (const candidate of byAction.delete.slice(0, 10)) {
+              summary += `- ${candidate.branch} (${candidate.status})\n`;
+            }
+            
+            summary += `\n## Branches Needing Review\n\n`;
+            for (const candidate of byAction.review) {
+              summary += `- ${candidate.branch} (PR #${candidate.pr})\n`;
+            }
+            
+            summary += `\n## Branches Needing PRs\n\n`;
+            for (const candidate of byAction.create_pr.slice(0, 10)) {
+              summary += `- ${candidate.branch}\n`;
+            }
+            
+            await core.summary.addRaw(summary).write();
