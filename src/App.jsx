@@ -7,7 +7,6 @@ import ClaudeChat from './pages/ClaudeChat';
 import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
 import Settings from './pages/Settings';
-import SettingsDebug from './pages/SettingsDebug';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
 import LayoutDemo from './pages/LayoutDemo';
@@ -29,8 +28,7 @@ function App() {
     'telegram-login': <TelegramLogin />,
     'telegram-messages': <TelegramSavedMessages />,
     layoutdemo: <LayoutDemo />,
-    settings: <SettingsDebug />,
-    'settings-original': <Settings />
+    settings: <Settings />
   };
 
   return (
