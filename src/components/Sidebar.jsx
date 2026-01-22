@@ -9,7 +9,8 @@ import {
   Zap,
   Sparkles,
   ScanLine,
-  Layout
+  Layout,
+  Send
 } from 'lucide-react';
 
 const menuItems = [
@@ -19,6 +20,8 @@ const menuItems = [
   { id: 'android', name: 'Android Control', icon: Smartphone },
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
+  { id: 'telegram-login', name: 'Telegram Login', icon: Send },
+  { id: 'telegram-messages', name: 'Saved Messages', icon: MessageSquare },
   { id: 'layoutdemo', name: 'Layout Demo', icon: Layout },
   { id: 'settings', name: 'Settings', icon: Settings },
 ];
