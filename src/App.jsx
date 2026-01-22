@@ -10,6 +10,8 @@ import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
 import LayoutDemo from './pages/LayoutDemo';
+import TelegramLogin from './pages/TelegramLogin';
+import TelegramSavedMessages from './pages/TelegramSavedMessages';
 import { SocketProvider } from './context/SocketContext';
 
 function App() {
@@ -23,6 +25,8 @@ function App() {
     android: <AndroidControl />,
     smartscan: <SmartScan />,
     promptgen: <PromptGenerator />,
+    'telegram-login': <TelegramLogin />,
+    'telegram-messages': <TelegramSavedMessages />,
     layoutdemo: <LayoutDemo />,
     settings: <Settings />
   };
