@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# Note: package-lock.json is tracked for deterministic builds
 yarn.lock
 pnpm-lock.yaml
 
@@ -8,11 +8,22 @@ pnpm-lock.yaml
 .env
 .env.local
 .env.production
+.env.*.local
+.env.development
+.env.test
+*.env
+
+# Claude Desktop config (keep examples, ignore actual configs)
+claude_desktop_config.json
+!claude_desktop_config.json.example
 
 # Build output
 dist/
 build/
 .vite/
+
+# Test coverage
+coverage/
 
 # Logs
 logs/
@@ -42,3 +53,22 @@ screenshots/
 *.jpg
 !public/*.png
 !public/*.jpg
+
+# Security & Secrets
+*secret*
+*password*
+*token*
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa
+id_rsa.pub
+*.gpg
+.ssh/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~

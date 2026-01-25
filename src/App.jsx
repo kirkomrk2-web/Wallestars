@@ -8,7 +8,10 @@ import ComputerControl from './pages/ComputerControl';
 import AndroidControl from './pages/AndroidControl';
 import QRScanner from './pages/QRScanner';
 import Settings from './pages/Settings';
+import PromptGenerator from './pages/PromptGenerator';
+import SmartScan from './pages/SmartScan';
 import { SocketProvider } from './context/SocketContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -20,12 +23,15 @@ function App() {
     computer: <ComputerControl />,
     android: <AndroidControl />,
     qrscanner: <QRScanner />,
+    smartscan: <SmartScan />,
+    promptgen: <PromptGenerator />,
     settings: <Settings />
   };
 
   return (
-    <SocketProvider>
-      <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 animate-gradient">
+    <ThemeProvider>
+      <SocketProvider>
+        <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 animate-gradient">
         {/* Background effects */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 -left-4 w-96 h-96 bg-primary-500/10 rounded-full mix-blend-multiply filter blur-3xl animate-pulse-slow"></div>
@@ -64,8 +70,9 @@ function App() {
             </main>
           </div>
         </div>
-      </div>
-    </SocketProvider>
+        </div>
+      </SocketProvider>
+    </ThemeProvider>
   );
 }
 
