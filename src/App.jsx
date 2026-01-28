@@ -10,6 +10,7 @@ import QRScanner from './pages/QRScanner';
 import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
+import HostingerManagement from './pages/HostingerManagement';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -25,6 +26,7 @@ function App() {
     qrscanner: <QRScanner />,
     smartscan: <SmartScan />,
     promptgen: <PromptGenerator />,
+    hostinger: <HostingerManagement />,
     settings: <Settings />
   };
 
