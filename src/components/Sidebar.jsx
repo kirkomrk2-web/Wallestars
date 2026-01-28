@@ -7,6 +7,7 @@ import {
   Smartphone,
   Settings,
   Zap,
+  QrCode
   Sparkles,
   ScanLine,
   Server
@@ -17,6 +18,7 @@ const menuItems = [
   { id: 'chat', name: 'Claude Chat', icon: MessageSquare },
   { id: 'computer', name: 'Computer Use', icon: Monitor },
   { id: 'android', name: 'Android Control', icon: Smartphone },
+  { id: 'qrscanner', name: 'QR Scanner', icon: QrCode },
   { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
   { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
   { id: 'hostinger', name: 'Hostinger VPS', icon: Server },
