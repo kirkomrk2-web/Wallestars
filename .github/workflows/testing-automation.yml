@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
   schedule:
     # Пусни тестове на всеки 30 минути
-    - cron: '*/30 * * * *'
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 permissions:

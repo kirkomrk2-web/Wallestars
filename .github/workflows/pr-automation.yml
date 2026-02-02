@@ -7,7 +7,7 @@ on:
     types: [submitted]
   schedule:
     # Провери PR-ове на всеки 15 минути
-    - cron: '*/15 * * * *'
+    - cron: '0 8,16 * * *'
   workflow_dispatch:
 
 permissions:
