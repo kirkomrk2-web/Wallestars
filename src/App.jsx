@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -11,24 +12,13 @@ import Settings from './pages/Settings';
 import PromptGenerator from './pages/PromptGenerator';
 import SmartScan from './pages/SmartScan';
 import HostingerManagement from './pages/HostingerManagement';
+import SystemLogs from './pages/SystemLogs';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
-  const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const pages = {
-    dashboard: <Dashboard />,
-    chat: <ClaudeChat />,
-    computer: <ComputerControl />,
-    android: <AndroidControl />,
-    qrscanner: <QRScanner />,
-    smartscan: <SmartScan />,
-    promptgen: <PromptGenerator />,
-    hostinger: <HostingerManagement />,
-    settings: <Settings />
-  };
+  const location = useLocation();
 
   return (
     <ThemeProvider>
@@ -44,8 +34,6 @@ function App() {
         <div className="relative flex">
           {/* Sidebar */}
           <Sidebar
-            activePage={activePage}
-            setActivePage={setActivePage}
             isOpen={sidebarOpen}
             setIsOpen={setSidebarOpen}
           />
@@ -60,13 +48,25 @@ function App() {
             <main className="p-6">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={activePage}
+                  key={location.pathname}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {pages[activePage]}
+                  <Routes location={location} key={location.pathname}>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/chat" element={<ClaudeChat />} />
+                    <Route path="/computer" element={<ComputerControl />} />
+                    <Route path="/android" element={<AndroidControl />} />
+                    <Route path="/qrscanner" element={<QRScanner />} />
+                    <Route path="/smartscan" element={<SmartScan />} />
+                    <Route path="/promptgen" element={<PromptGenerator />} />
+                    <Route path="/hostinger" element={<HostingerManagement />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/logs" element={<SystemLogs />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
                 </motion.div>
               </AnimatePresence>
             </main>
