@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import db from '../db.js';
 
 const router = Router();
 const anthropic = new Anthropic({
@@ -31,6 +32,12 @@ router.post('/chat', async (req, res) => {
         { role: 'assistant', content: response.content[0].text }
       ]
     });
+
+    try {
+      db.prepare('INSERT INTO system_logs (type, details) VALUES (?, ?)').run('chat', 'User sent a message to Claude');
+    } catch (logError) {
+      console.error('Logging failed:', logError);
+    }
   } catch (error) {
     console.error('Claude API Error:', error);
     res.status(500).json({

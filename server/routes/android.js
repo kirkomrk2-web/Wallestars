@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import db from '../db.js';
 
 const execAsync = promisify(exec);
 const router = Router();
@@ -77,6 +78,12 @@ router.post('/tap', async (req, res) => {
       action: 'tap',
       coordinates: { x, y }
     });
+
+    try {
+      db.prepare('INSERT INTO system_logs (type, details) VALUES (?, ?)').run('android', `Tap at ${x},${y}`);
+    } catch (logError) {
+      console.error('Logging failed:', logError);
+    }
   } catch (error) {
     console.error('Android tap error:', error);
     res.status(500).json({
@@ -101,6 +108,12 @@ router.post('/type', async (req, res) => {
       action: 'type',
       text: text
     });
+
+    try {
+      db.prepare('INSERT INTO system_logs (type, details) VALUES (?, ?)').run('android', `Typed text on device`);
+    } catch (logError) {
+      console.error('Logging failed:', logError);
+    }
   } catch (error) {
     console.error('Android type error:', error);
     res.status(500).json({

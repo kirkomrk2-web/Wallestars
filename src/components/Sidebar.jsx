@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessageSquare,
@@ -10,22 +11,24 @@ import {
   QrCode,
   Sparkles,
   ScanLine,
-  Server
+  Server,
+  FileText
 } from 'lucide-react';
 
 const menuItems = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-  { id: 'chat', name: 'Claude Chat', icon: MessageSquare },
-  { id: 'computer', name: 'Computer Use', icon: Monitor },
-  { id: 'android', name: 'Android Control', icon: Smartphone },
-  { id: 'qrscanner', name: 'QR Scanner', icon: QrCode },
-  { id: 'smartscan', name: 'Smart Scan', icon: ScanLine },
-  { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles },
-  { id: 'hostinger', name: 'Hostinger VPS', icon: Server },
-  { id: 'settings', name: 'Settings', icon: Settings },
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { id: 'chat', name: 'Claude Chat', icon: MessageSquare, path: '/chat' },
+  { id: 'computer', name: 'Computer Use', icon: Monitor, path: '/computer' },
+  { id: 'android', name: 'Android Control', icon: Smartphone, path: '/android' },
+  { id: 'qrscanner', name: 'QR Scanner', icon: QrCode, path: '/qrscanner' },
+  { id: 'smartscan', name: 'Smart Scan', icon: ScanLine, path: '/smartscan' },
+  { id: 'promptgen', name: 'Prompt Generator', icon: Sparkles, path: '/promptgen' },
+  { id: 'hostinger', name: 'Hostinger VPS', icon: Server, path: '/hostinger' },
+  { id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
+  { id: 'logs', name: 'System Logs', icon: FileText, path: '/logs' },
 ];
 
-export default function Sidebar({ activePage, setActivePage, isOpen }) {
+export default function Sidebar({ isOpen }) {
   return (
     <motion.aside
       initial={false}
@@ -34,7 +37,7 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
       }}
       className="fixed left-0 top-0 h-screen glass-effect border-r border-white/10 z-50"
     >
-      <div className="p-6">
+      <div className="p-6 h-full overflow-y-auto pb-28 scrollbar-hide">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-10">
           <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
@@ -58,43 +61,44 @@ export default function Sidebar({ activePage, setActivePage, isOpen }) {
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activePage === item.id;
 
             return (
-              <motion.button
+              <NavLink
                 key={item.id}
-                onClick={() => setActivePage(item.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`
+                to={item.path}
+                className={({ isActive }) => `
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg
-                  transition-all duration-200 relative overflow-hidden
+                  transition-all duration-200 relative overflow-hidden block
                   ${isActive
                     ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30'
                     : 'text-dark-300 hover:text-white hover:bg-white/5'
                   }
                 `}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-600"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-600"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
 
-                <Icon className="w-5 h-5 relative z-10" />
+                    <Icon className="w-5 h-5 relative z-10" />
 
-                {isOpen && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="relative z-10 font-medium"
-                  >
-                    {item.name}
-                  </motion.span>
+                    {isOpen && (
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="relative z-10 font-medium"
+                      >
+                        {item.name}
+                      </motion.span>
+                    )}
+                  </>
                 )}
-              </motion.button>
+              </NavLink>
             );
           })}
         </nav>

@@ -99,6 +99,12 @@
 - **Dark Theme** - Easy on the eyes with glassmorphism effects
 - **Real-time Updates** - WebSocket for live data streaming
 
+### 📋 System Logs
+- **Event Tracking** - Tracks system events, chat history, and command executions.
+- **SQLite Database** - Lightweight local database for persisting logs.
+- **Visual Interface** - Dedicated page to view and filter logs.
+- **Auto-Refresh** - Real-time updates of system activities.
+
 ---
 
 ## 🚀 Installation
@@ -207,6 +213,11 @@
 5. Monitor VPS metrics and status
 
 📚 **For detailed documentation, see [HOSTINGER_API_INTEGRATION.md](HOSTINGER_API_INTEGRATION.md)**
+
+### System Logs
+1. Navigate to "System Logs" via the sidebar.
+2. View real-time logs of system activities, including chat interactions, command executions, and Android control events.
+3. Click the refresh button to manually fetch the latest logs.
 
 ---
 

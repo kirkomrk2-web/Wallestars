@@ -2,6 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import morgan from 'morgan';
+import { rateLimit } from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { claudeRouter } from './routes/claude.js';
 import { computerUseRouter } from './routes/computerUse.js';
@@ -10,6 +12,7 @@ import { documentScannerRouter } from './routes/documentScanner.js';
 import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
 import { sseRouter } from './routes/sse.js';
 import { hostingerRouter } from './routes/hostinger.js';
+import { logsRouter } from './routes/logs.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -31,8 +34,18 @@ app.use(cors({
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(morgan('dev')); // HTTP request logging
 app.use(express.json());
 app.use(express.static('dist'));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 2000, // Limit each IP to 2000 requests per `window` (here, per 15 minutes)
+  standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+app.use('/api/', limiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -56,6 +69,7 @@ app.use('/api/android', androidRouter);
 app.use('/api/document-scanner', documentScannerRouter);
 app.use('/api/webhooks/n8n', n8nWebhooksRouter);
 app.use('/api/hostinger', hostingerRouter);
+app.use('/api/logs', logsRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);
