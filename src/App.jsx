@@ -1,7 +1,9 @@
 import React, { useState, Suspense, lazy, Component } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import SystemLogs from './pages/SystemLogs';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -49,22 +51,6 @@ const MultiAgentDesign = lazy(() => import('./pages/MultiAgentDesign'));
 const AgentRegistry = lazy(() => import('./pages/AgentRegistry'));
 const EligibilityCheck = lazy(() => import('./pages/EligibilityCheck'));
 
-const PAGE_COMPONENTS = {
-  dashboard: Dashboard,
-  chat: ClaudeChat,
-  computer: ComputerControl,
-  android: AndroidControl,
-  qrscanner: QRScanner,
-  smartscan: SmartScan,
-  promptgen: PromptGenerator,
-  hostinger: HostingerManagement,
-  orchestration: OrchestrationFarm,
-  multiagent: MultiAgentDesign,
-  agentregistry: AgentRegistry,
-  eligibility: EligibilityCheck,
-  settings: Settings
-};
-
 function PageFallback() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -74,10 +60,8 @@ function PageFallback() {
 }
 
 function App() {
-  const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const ActiveComponent = PAGE_COMPONENTS[activePage] || Dashboard;
+  const location = useLocation();
 
   return (
     <ThemeProvider>
@@ -93,8 +77,6 @@ function App() {
         <div className="relative flex">
           {/* Sidebar */}
           <Sidebar
-            activePage={activePage}
-            setActivePage={setActivePage}
             isOpen={sidebarOpen}
             setIsOpen={setSidebarOpen}
           />
@@ -109,15 +91,31 @@ function App() {
             <main className="p-6">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={activePage}
+                  key={location.pathname}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <ErrorBoundary key={activePage}>
+                  <ErrorBoundary key={location.pathname}>
                     <Suspense fallback={<PageFallback />}>
-                      <ActiveComponent />
+                      <Routes location={location} key={location.pathname}>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/chat" element={<ClaudeChat />} />
+                        <Route path="/computer" element={<ComputerControl />} />
+                        <Route path="/android" element={<AndroidControl />} />
+                        <Route path="/qrscanner" element={<QRScanner />} />
+                        <Route path="/smartscan" element={<SmartScan />} />
+                        <Route path="/promptgen" element={<PromptGenerator />} />
+                        <Route path="/hostinger" element={<HostingerManagement />} />
+                        <Route path="/orchestration" element={<OrchestrationFarm />} />
+                        <Route path="/multiagent" element={<MultiAgentDesign />} />
+                        <Route path="/agentregistry" element={<AgentRegistry />} />
+                        <Route path="/eligibility" element={<EligibilityCheck />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/logs" element={<SystemLogs />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
                     </Suspense>
                   </ErrorBoundary>
                 </motion.div>
