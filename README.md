@@ -27,6 +27,7 @@
 - **Custom Domain**: https://workmail.pro (after DNS configuration)
 - **GitHub Pages**: https://wallesters-org.github.io/Wallestars (static frontend only)
 - **VPS Deployment**: https://srv1201204.hstgr.cloud (full functionality)
+- **Tailscale Access**: [See Setup Guide](TAILSCALE_SETUP.md) (secure remote access)
 
 > **Note**: GitHub Pages deployment hosts only the static frontend. For full backend functionality (Claude AI, Computer Use, Android Control), use the VPS deployment.
 
