@@ -39,7 +39,10 @@ export const authMiddleware = (req, res, next) => {
     // 100.64.0.0 = 1681915904
     // 100.127.255.255 = 1686110207
     const isTailscale = (ipStr) => {
-        const parts = ipStr.split('.');
+        // Handle IPv6-mapped IPv4 addresses (e.g. ::ffff:100.64.0.1)
+        const normalizedIp = ipStr.startsWith('::ffff:') ? ipStr.substring(7) : ipStr;
+
+        const parts = normalizedIp.split('.');
         if (parts.length !== 4) return false;
         const num = (parseInt(parts[0]) << 24) | (parseInt(parts[1]) << 16) | (parseInt(parts[2]) << 8) | parseInt(parts[3]);
         // Handle unsigned integer conversion
