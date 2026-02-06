@@ -30,15 +30,27 @@ export const authMiddleware = (req, res, next) => {
         }
     }
 
-    // 2. Check for Localhost (Loopback)
-    // This allows the local frontend to work without explicit auth headers
+    // 2. Check for Localhost or Tailscale
+    // This allows the local frontend and Tailscale trusted network to work without explicit auth headers
     const ip = req.ip || req.connection.remoteAddress;
     const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1';
 
-    if (isLocalhost) {
-        // Grant Operator access to localhost (Frontend running on same machine)
+    // Check if IP is in Tailscale range (100.64.0.0/10)
+    // 100.64.0.0 = 1681915904
+    // 100.127.255.255 = 1686110207
+    const isTailscale = (ipStr) => {
+        const parts = ipStr.split('.');
+        if (parts.length !== 4) return false;
+        const num = (parseInt(parts[0]) << 24) | (parseInt(parts[1]) << 16) | (parseInt(parts[2]) << 8) | parseInt(parts[3]);
+        // Handle unsigned integer conversion
+        const unsignedNum = num >>> 0;
+        return unsignedNum >= 1681915904 && unsignedNum <= 1686110207;
+    };
+
+    if (isLocalhost || isTailscale(ip)) {
+        // Grant Operator access to localhost and Tailscale
         // Operator can control mouse/keyboard but maybe not system config
-        req.user = { role: 'operator', source: 'localhost' };
+        req.user = { role: 'operator', source: isLocalhost ? 'localhost' : 'tailscale' };
         return next();
     }
 

@@ -21,8 +21,13 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo -e "${GREEN}1. Downloading and installing Tailscale...${NC}"
-curl -fsSL https://tailscale.com/install.sh | sh
+echo -e "${GREEN}1. Checking Tailscale installation...${NC}"
+if command -v tailscale &> /dev/null; then
+    echo -e "${GREEN}✅ Tailscale is already installed!${NC}"
+else
+    echo -e "${GREEN}Downloading and installing Tailscale...${NC}"
+    curl -fsSL https://tailscale.com/install.sh | sh
+fi
 
 echo -e "${GREEN}2. Authenticating Tailscale...${NC}"
 echo "You will be asked to visit a URL to log in."

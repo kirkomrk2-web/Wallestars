@@ -64,3 +64,17 @@ await client.click(100, 200); // Изисква права
 - **Контрол на Android** (tap, type, install): Изисква `control:devices`
 - **Използване на Claude AI**: Изисква `use:ai`
 - **Системна информация**: Достъпна за `view:system` (всички роли)
+
+## ⚠️ Отказ на достъп (Access Denied)
+
+Ако потребител или агент се опита да изпълни действие, за което няма права (напр. Viewer се опита да контролира мишката), сървърът ще върне:
+
+- **HTTP Status Code**: `403 Forbidden`
+- **JSON Body**:
+  ```json
+  {
+    "error": "Permission denied",
+    "action": "computer.mouse.click",
+    "requiredPermission": "control:system"
+  }
+  ```

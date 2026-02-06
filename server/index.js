@@ -15,6 +15,14 @@ import { authMiddleware } from './middleware/auth.js';
 
 dotenv.config();
 
+// Startup Validation
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('⚠️ WARNING: ANTHROPIC_API_KEY is not set. Claude AI features and Admin access via sk-ant- keys will be disabled.');
+}
+if (!process.env.WALLESTARS_API_KEY) {
+  console.warn('⚠️ WARNING: WALLESTARS_API_KEY is not set. External agents using ws- keys will not be able to authenticate.');
+}
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -98,6 +106,9 @@ httpServer.listen(PORT, () => {
 ║   ${process.env.ENABLE_ANDROID === 'true' ? '✅' : '❌'} Android Control                            ║
 ║   ${process.env.HOSTINGER_API_TOKEN ? '✅' : '❌'} Hostinger API                              ║
 ║   ✅ SSE (MCP SuperAssistant)                         ║
+║                                                       ║
+║   Security:                                           ║
+║   ${process.env.WALLESTARS_API_KEY ? '✅' : '⚠️'} Agent Auth (WALLESTARS_API_KEY)              ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
