@@ -11,6 +11,7 @@ import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
 import { sseRouter } from './routes/sse.js';
 import { hostingerRouter } from './routes/hostinger.js';
 import { setupSocketHandlers } from './socket/handlers.js';
+import { authMiddleware } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
+app.set('trust proxy', 1); // Trust first proxy (Nginx)
 app.use(cors({
   origin: '*', // Allow all origins for MCP SuperAssistant
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -33,6 +35,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.static('dist'));
+
+// Authentication Middleware
+app.use('/api', authMiddleware);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import { getPermissions } from '../services/permissions.js';
 
 const router = Router();
+const permissions = getPermissions();
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 // Chat with Claude
-router.post('/chat', async (req, res) => {
+router.post('/chat', permissions.middleware('claude.chat'), async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
 
@@ -41,7 +43,7 @@ router.post('/chat', async (req, res) => {
 });
 
 // Claude Computer Use - Full automation
-router.post('/computer-use', async (req, res) => {
+router.post('/computer-use', permissions.middleware('claude.computeruse'), async (req, res) => {
   try {
     const { task, screenshot } = req.body;
 
@@ -96,7 +98,7 @@ router.post('/computer-use', async (req, res) => {
 });
 
 // Analyze image for QR Scanner
-router.post('/analyze-image', async (req, res) => {
+router.post('/analyze-image', permissions.middleware('claude.vision'), async (req, res) => {
   try {
     const { image, prompt } = req.body;
 
@@ -181,7 +183,7 @@ router.post('/analyze-image', async (req, res) => {
 });
 
 // Get model capabilities
-router.get('/capabilities', (req, res) => {
+router.get('/capabilities', permissions.middleware('computer.info'), (req, res) => {
   res.json({
     models: [
       {
