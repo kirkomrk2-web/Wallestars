@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { getPermissions } from '../services/permissions.js';
 
 const execAsync = promisify(exec);
 const router = Router();
+const permissions = getPermissions();
 
 // List connected Android devices
-router.get('/devices', async (req, res) => {
+router.get('/devices', permissions.middleware('android.list'), async (req, res) => {
   try {
     const { stdout } = await execAsync('adb devices -l');
 
@@ -36,7 +38,7 @@ router.get('/devices', async (req, res) => {
 });
 
 // Take Android screenshot
-router.post('/screenshot', async (req, res) => {
+router.post('/screenshot', permissions.middleware('android.screenshot'), async (req, res) => {
   try {
     const { deviceId } = req.body;
     const device = deviceId ? `-s ${deviceId}` : '';
@@ -65,7 +67,7 @@ router.post('/screenshot', async (req, res) => {
 });
 
 // Tap on screen
-router.post('/tap', async (req, res) => {
+router.post('/tap', permissions.middleware('android.tap'), async (req, res) => {
   try {
     const { x, y, deviceId } = req.body;
     const device = deviceId ? `-s ${deviceId}` : '';
@@ -87,7 +89,7 @@ router.post('/tap', async (req, res) => {
 });
 
 // Type text on Android
-router.post('/type', async (req, res) => {
+router.post('/type', permissions.middleware('android.type'), async (req, res) => {
   try {
     const { text, deviceId } = req.body;
     const device = deviceId ? `-s ${deviceId}` : '';
@@ -111,7 +113,7 @@ router.post('/type', async (req, res) => {
 });
 
 // Press key on Android
-router.post('/key', async (req, res) => {
+router.post('/key', permissions.middleware('android.type'), async (req, res) => {
   try {
     const { keyCode, deviceId } = req.body;
     const device = deviceId ? `-s ${deviceId}` : '';
@@ -134,7 +136,7 @@ router.post('/key', async (req, res) => {
 });
 
 // Install APK
-router.post('/install', async (req, res) => {
+router.post('/install', permissions.middleware('android.install'), async (req, res) => {
   try {
     const { apkPath, deviceId } = req.body;
     const device = deviceId ? `-s ${deviceId}` : '';
@@ -155,7 +157,7 @@ router.post('/install', async (req, res) => {
 });
 
 // Get device info
-router.get('/info/:deviceId?', async (req, res) => {
+router.get('/info/:deviceId?', permissions.middleware('android.list'), async (req, res) => {
   try {
     const { deviceId } = req.params;
     const device = deviceId ? `-s ${deviceId}` : '';

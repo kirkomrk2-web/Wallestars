@@ -2,12 +2,14 @@ import { Router } from 'express';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import screenshot from 'screenshot-desktop';
+import { getPermissions } from '../services/permissions.js';
 
 const execAsync = promisify(exec);
 const router = Router();
+const permissions = getPermissions();
 
 // Take screenshot
-router.get('/screenshot', async (req, res) => {
+router.get('/screenshot', permissions.middleware('computer.screenshot'), async (req, res) => {
   try {
     const img = await screenshot({ format: 'png' });
     const base64 = img.toString('base64');
@@ -27,7 +29,7 @@ router.get('/screenshot', async (req, res) => {
 });
 
 // Execute mouse click
-router.post('/click', async (req, res) => {
+router.post('/click', permissions.middleware('computer.mouse.click'), async (req, res) => {
   try {
     const { x, y, button = 1 } = req.body;
 
@@ -49,7 +51,7 @@ router.post('/click', async (req, res) => {
 });
 
 // Type text
-router.post('/type', async (req, res) => {
+router.post('/type', permissions.middleware('computer.keyboard.type'), async (req, res) => {
   try {
     const { text } = req.body;
 
@@ -72,7 +74,7 @@ router.post('/type', async (req, res) => {
 });
 
 // Press keyboard key
-router.post('/key', async (req, res) => {
+router.post('/key', permissions.middleware('computer.keyboard.press'), async (req, res) => {
   try {
     const { key } = req.body;
 
@@ -93,7 +95,7 @@ router.post('/key', async (req, res) => {
 });
 
 // Get system info
-router.get('/info', async (req, res) => {
+router.get('/info', permissions.middleware('computer.info'), async (req, res) => {
   try {
     const [hostname, uptime, memory] = await Promise.all([
       execAsync('hostname'),
@@ -121,7 +123,7 @@ router.get('/info', async (req, res) => {
 });
 
 // Execute shell command (dangerous - use with caution)
-router.post('/execute', async (req, res) => {
+router.post('/execute', permissions.middleware('computer.execute'), async (req, res) => {
   try {
     const { command } = req.body;
 

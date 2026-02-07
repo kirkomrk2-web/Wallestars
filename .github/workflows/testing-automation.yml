@@ -197,21 +197,29 @@ jobs:
               '_Автоматично създадена test session_'
             ].join('\n');
             
-            const { data: issue } = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🧪 Test Session: PR #${prNumber} - ${prTitle}`,
-              body: sessionBody,
-              labels: ['test-session', 'automated', `pr-${prNumber}`]
-            });
-            
-            // Добави коментар към PR
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: `🧪 Test session създадена: #${issue.number}\n\nПроследи прогреса на тестването там.`
-            });
+            try {
+              const { data: issue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🧪 Test Session: PR #${prNumber} - ${prTitle}`,
+                body: sessionBody,
+                labels: ['test-session', 'automated', `pr-${prNumber}`]
+              });
+
+              // Добави коментар към PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `🧪 Test session създадена: #${issue.number}\n\nПроследи прогреса на тестването там.`
+              });
+            } catch (error) {
+              if (error.status === 410) {
+                console.log('⚠️ Issues feature is disabled in this repository. Skipping test session issue creation.');
+              } else {
+                throw error;
+              }
+            }
 
   notify-results:
     runs-on: ubuntu-latest

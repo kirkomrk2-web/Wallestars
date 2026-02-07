@@ -11,8 +11,17 @@ import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
 import { sseRouter } from './routes/sse.js';
 import { hostingerRouter } from './routes/hostinger.js';
 import { setupSocketHandlers } from './socket/handlers.js';
+import { authMiddleware } from './middleware/auth.js';
 
 dotenv.config();
+
+// Startup Validation
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('⚠️ WARNING: ANTHROPIC_API_KEY is not set. Claude AI features and Admin access via sk-ant- keys will be disabled.');
+}
+if (!process.env.WALLESTARS_API_KEY) {
+  console.warn('⚠️ WARNING: WALLESTARS_API_KEY is not set. External agents using ws- keys will not be able to authenticate.');
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,6 +35,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
+app.set('trust proxy', 1); // Trust first proxy (Nginx)
 app.use(cors({
   origin: '*', // Allow all origins for MCP SuperAssistant
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -33,6 +43,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.static('dist'));
+
+// Authentication Middleware
+app.use('/api', authMiddleware);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -93,6 +106,9 @@ httpServer.listen(PORT, () => {
 ║   ${process.env.ENABLE_ANDROID === 'true' ? '✅' : '❌'} Android Control                            ║
 ║   ${process.env.HOSTINGER_API_TOKEN ? '✅' : '❌'} Hostinger API                              ║
 ║   ✅ SSE (MCP SuperAssistant)                         ║
+║                                                       ║
+║   Security:                                           ║
+║   ${process.env.WALLESTARS_API_KEY ? '✅' : '⚠️'} Agent Auth (WALLESTARS_API_KEY)              ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
