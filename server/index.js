@@ -10,6 +10,7 @@ import { documentScannerRouter } from './routes/documentScanner.js';
 import { n8nWebhooksRouter } from './routes/n8nWebhooks.js';
 import { sseRouter } from './routes/sse.js';
 import telegramRouter from './routes/telegram.js';
+import telegramAnalysisRouter from './routes/telegramAnalysis.js';
 import { setupSocketHandlers } from './socket/handlers.js';
 
 dotenv.config();
@@ -56,6 +57,7 @@ app.use('/api/android', androidRouter);
 app.use('/api/document-scanner', documentScannerRouter);
 app.use('/api/webhooks/n8n', n8nWebhooksRouter);
 app.use('/api/telegram', telegramRouter);
+app.use('/api/telegram/analyze', telegramAnalysisRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);
