@@ -31,7 +31,6 @@ export default function Settings() {
 
   const handleSave = () => {
     // Save settings (in a real app, this would send to backend)
-    console.log('Saving settings:', settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

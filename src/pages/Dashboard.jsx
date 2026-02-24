@@ -39,11 +39,12 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    // Fetch dashboard stats
+    // Fetch dashboard stats and seed active service count
     fetch('/api/health')
       .then(res => res.json())
       .then(data => {
-        console.log('Health check:', data);
+        const activeServices = Object.values(data.services || {}).filter(Boolean).length;
+        setStats(prev => ({ ...prev, claudeRequests: activeServices }));
       })
       .catch(err => console.error('Health check failed:', err));
 

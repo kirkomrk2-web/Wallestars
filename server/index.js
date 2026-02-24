@@ -26,23 +26,30 @@ import { jiraRouter } from './routes/jira.js';
 import { linearRouter } from './routes/linear.js';
 import { vercelRouter } from './routes/vercel.js';
 import { replicateRouter } from './routes/replicate.js';
+import { wallesterRouter } from './routes/wallester.js';
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+
+const allowedWsOrigins = process.env.NODE_ENV === 'production'
+  ? (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true)
+  : ['http://localhost:5173', 'http://localhost:3006'];
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NODE_ENV === 'production'
-      ? process.env.FRONTEND_URL
-      : ['http://localhost:5173', 'http://localhost:3006'],
+    origin: allowedWsOrigins,
     methods: ['GET', 'POST']
   }
 });
 
 // Middleware
+const corsOrigin = process.env.NODE_ENV === 'production'
+  ? (process.env.FRONTEND_URL || process.env.ALLOWED_ORIGIN || false)
+  : '*';
 app.use(cors({
-  origin: '*', // Allow all origins for MCP SuperAssistant
+  origin: corsOrigin,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -100,6 +107,7 @@ app.use('/api/jira', jiraRouter);
 app.use('/api/linear', linearRouter);
 app.use('/api/vercel', vercelRouter);
 app.use('/api/replicate', replicateRouter);
+app.use('/api/wallester', wallesterRouter);
 
 // SSE Route for MCP SuperAssistant
 app.use('/sse', sseRouter);

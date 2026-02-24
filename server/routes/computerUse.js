@@ -31,13 +31,20 @@ router.post('/click', async (req, res) => {
   try {
     const { x, y, button = 1 } = req.body;
 
+    const xInt = parseInt(x, 10);
+    const yInt = parseInt(y, 10);
+    const buttonInt = parseInt(button, 10);
+    if (isNaN(xInt) || isNaN(yInt) || ![1, 2, 3].includes(buttonInt)) {
+      return res.status(400).json({ success: false, error: 'Invalid click parameters' });
+    }
+
     // Using xdotool for Linux
-    await execAsync(`xdotool mousemove ${x} ${y} click ${button}`);
+    await execAsync(`xdotool mousemove ${xInt} ${yInt} click ${buttonInt}`);
 
     res.json({
       success: true,
       action: 'click',
-      coordinates: { x, y }
+      coordinates: { x: xInt, y: yInt }
     });
   } catch (error) {
     console.error('Click error:', error);
@@ -53,7 +60,11 @@ router.post('/type', async (req, res) => {
   try {
     const { text } = req.body;
 
-    // Escape special characters for shell
+    if (typeof text !== 'string' || text.length === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid text parameter' });
+    }
+
+    // Escape single quotes for shell single-quote context
     const escapedText = text.replace(/'/g, "'\\''");
     await execAsync(`xdotool type '${escapedText}'`);
 
@@ -75,6 +86,11 @@ router.post('/type', async (req, res) => {
 router.post('/key', async (req, res) => {
   try {
     const { key } = req.body;
+
+    // Whitelist: only allow xdotool key names (alphanumeric, +, -, _)
+    if (typeof key !== 'string' || !/^[a-zA-Z0-9+_\-]+$/.test(key)) {
+      return res.status(400).json({ success: false, error: 'Invalid key parameter' });
+    }
 
     await execAsync(`xdotool key ${key}`);
 
@@ -125,9 +141,21 @@ router.post('/execute', async (req, res) => {
   try {
     const { command } = req.body;
 
+    if (typeof command !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid command' });
+    }
+
+    // Reject any shell metacharacters to prevent injection
+    if (/[&|;`$(){}[\]<>\\]/.test(command)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Command not allowed for security reasons'
+      });
+    }
+
     // Whitelist of safe commands
     const safeCommands = ['ls', 'pwd', 'date', 'whoami', 'uname'];
-    const commandName = command.split(' ')[0];
+    const commandName = command.split(/\s+/)[0];
 
     if (!safeCommands.includes(commandName)) {
       return res.status(403).json({

@@ -72,3 +72,12 @@ id_rsa.pub
 *.backup
 *.old
 *~
+
+# Credentials - NEVER commit
+Credentials/
+*.env
+.mcp.json
+credentials*.txt
+credentials*.md
+env*.txt
+env*.md

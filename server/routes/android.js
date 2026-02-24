@@ -5,6 +5,11 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 const router = Router();
 
+// Validate ADB device ID: alphanumeric, colon, dot, hyphen (covers serial and IP:port formats)
+function validateDeviceId(deviceId) {
+  return typeof deviceId === 'string' && /^[\w.:_-]+$/.test(deviceId);
+}
+
 // List connected Android devices
 router.get('/devices', async (req, res) => {
   try {
@@ -39,6 +44,11 @@ router.get('/devices', async (req, res) => {
 router.post('/screenshot', async (req, res) => {
   try {
     const { deviceId } = req.body;
+
+    if (deviceId && !validateDeviceId(deviceId)) {
+      return res.status(400).json({ success: false, error: 'Invalid device ID' });
+    }
+
     const device = deviceId ? `-s ${deviceId}` : '';
 
     // Take screenshot and pull to temp location
@@ -68,14 +78,24 @@ router.post('/screenshot', async (req, res) => {
 router.post('/tap', async (req, res) => {
   try {
     const { x, y, deviceId } = req.body;
-    const device = deviceId ? `-s ${deviceId}` : '';
 
-    await execAsync(`adb ${device} shell input tap ${x} ${y}`);
+    if (deviceId && !validateDeviceId(deviceId)) {
+      return res.status(400).json({ success: false, error: 'Invalid device ID' });
+    }
+
+    const xInt = parseInt(x, 10);
+    const yInt = parseInt(y, 10);
+    if (isNaN(xInt) || isNaN(yInt)) {
+      return res.status(400).json({ success: false, error: 'Invalid coordinates' });
+    }
+
+    const device = deviceId ? `-s ${deviceId}` : '';
+    await execAsync(`adb ${device} shell input tap ${xInt} ${yInt}`);
 
     res.json({
       success: true,
       action: 'tap',
-      coordinates: { x, y }
+      coordinates: { x: xInt, y: yInt }
     });
   } catch (error) {
     console.error('Android tap error:', error);
@@ -90,10 +110,19 @@ router.post('/tap', async (req, res) => {
 router.post('/type', async (req, res) => {
   try {
     const { text, deviceId } = req.body;
+
+    if (deviceId && !validateDeviceId(deviceId)) {
+      return res.status(400).json({ success: false, error: 'Invalid device ID' });
+    }
+
+    if (typeof text !== 'string' || text.length === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid text parameter' });
+    }
+
     const device = deviceId ? `-s ${deviceId}` : '';
 
-    // Replace spaces with %s for ADB
-    const formattedText = text.replace(/ /g, '%s');
+    // Replace spaces with %s for ADB, then escape shell double-quote metacharacters
+    const formattedText = text.replace(/ /g, '%s').replace(/["$`\\]/g, '\\$&');
     await execAsync(`adb ${device} shell input text "${formattedText}"`);
 
     res.json({
@@ -114,15 +143,24 @@ router.post('/type', async (req, res) => {
 router.post('/key', async (req, res) => {
   try {
     const { keyCode, deviceId } = req.body;
-    const device = deviceId ? `-s ${deviceId}` : '';
 
+    if (deviceId && !validateDeviceId(deviceId)) {
+      return res.status(400).json({ success: false, error: 'Invalid device ID' });
+    }
+
+    const keyCodeInt = parseInt(keyCode, 10);
+    if (isNaN(keyCodeInt) || keyCodeInt < 0) {
+      return res.status(400).json({ success: false, error: 'Invalid keyCode' });
+    }
+
+    const device = deviceId ? `-s ${deviceId}` : '';
     // Common keycodes: HOME=3, BACK=4, MENU=82, POWER=26
-    await execAsync(`adb ${device} shell input keyevent ${keyCode}`);
+    await execAsync(`adb ${device} shell input keyevent ${keyCodeInt}`);
 
     res.json({
       success: true,
       action: 'key',
-      keyCode: keyCode
+      keyCode: keyCodeInt
     });
   } catch (error) {
     console.error('Android key error:', error);
@@ -137,8 +175,17 @@ router.post('/key', async (req, res) => {
 router.post('/install', async (req, res) => {
   try {
     const { apkPath, deviceId } = req.body;
-    const device = deviceId ? `-s ${deviceId}` : '';
 
+    if (deviceId && !validateDeviceId(deviceId)) {
+      return res.status(400).json({ success: false, error: 'Invalid device ID' });
+    }
+
+    // Reject paths with shell metacharacters or path traversal
+    if (typeof apkPath !== 'string' || /[&|;`$(){}[\]<>\\'"*?]/.test(apkPath) || apkPath.includes('..')) {
+      return res.status(400).json({ success: false, error: 'Invalid APK path' });
+    }
+
+    const device = deviceId ? `-s ${deviceId}` : '';
     const { stdout } = await execAsync(`adb ${device} install "${apkPath}"`);
 
     res.json({
@@ -158,6 +205,11 @@ router.post('/install', async (req, res) => {
 router.get('/info/:deviceId?', async (req, res) => {
   try {
     const { deviceId } = req.params;
+
+    if (deviceId && !validateDeviceId(deviceId)) {
+      return res.status(400).json({ success: false, error: 'Invalid device ID' });
+    }
+
     const device = deviceId ? `-s ${deviceId}` : '';
 
     const [model, android, battery] = await Promise.all([

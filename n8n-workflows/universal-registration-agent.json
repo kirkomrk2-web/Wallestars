@@ -1,0 +1,344 @@
+{
+    "name": "Universal Registration Agent",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "universal-register",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                100,
+                300
+            ],
+            "webhookId": "universal-register"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Prepare User Profile and Device Config\nconst input = $input.first().json;\n\n// Default Desktop Config\nconst deviceConfig = input.device_config || {\n  device_type: 'desktop',\n  width: 1920,\n  height: 1080,\n  mobile: false\n};\n\n// Map specific device presets if provided\nif (input.device_type === 'mobile') {\n  deviceConfig.width = 390;\n  deviceConfig.height = 844;\n  deviceConfig.mobile = true;\n  deviceConfig.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';\n}\n\nreturn {\n  json: {\n    target_url: input.target_url,\n    user_profile: input.user_profile || {},\n    device_config: deviceConfig,\n    task: `Register an account on ${input.target_url} using the provided profile data. Handle cookie banners, multi-step forms, and verification if possible.`\n  }\n};"
+            },
+            "id": "prepare-data",
+            "name": "Prepare Data & Device Config",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "airtopApi",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"configuration\": {\n    \"browser\": \"chrome\",\n    \"viewport\": {\n      \"width\": {{ $json.device_config.width }},\n      \"height\": {{ $json.device_config.height }}\n    },\n    \"timeout\": 300000\n  }\n}",
+                "options": {}
+            },
+            "id": "create-session",
+            "name": "Airtop: Create Adaptive Session",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                300
+            ],
+            "credentials": {
+                "airtopApi": {
+                    "id": "{{AIRTOP_CREDENTIAL_ID}}",
+                    "name": "Airtop API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $('Prepare Data & Device Config').item.json.task }}\n\nUSER PROFILE DATA:\n{{ JSON.stringify($('Prepare Data & Device Config').item.json.user_profile, null, 2) }}\n\nGOAL: Successfully create an account. \n\nSTRATEGY:\n1. Navigate to the Target URL.\n2. Handle overlays: Close cookie banners/popups immediately.\n3. Locate Entry Point: Look for 'Sign Up', 'Register', 'Get Started', or 'Profile' icons.\n4. Fill Forms: Map the User Profile data to the form fields intelligently.\n   - If a field is 'Confirm Password', re-use the password.\n   - If a field asks for 'Year of Birth' etc., extract it from the DOB.\n5. Handle Checkboxes: Agree to Terms of Service if required.\n6. Multi-step: If the form is split across pages, click 'Next/Continue' and repeat filling.\n7. Success Detection: Report success if the URL changes to a dashboard or a 'Welcome' message appears.\n\nDEVICE CONTEXT: You are browsing on a {{ $('Prepare Data & Device Config').item.json.device_config.device_type }} device. \n- If mobile, look for hamburger menus (≡) to find the Sign Up link.\n\nOUTPUT: Return a JSON summary of the account created (username/email used) and final status.",
+                "options": {
+                    "systemMessage": "You are a Universal Registration Agent. You are an expert at understanding web forms, regardless of layout (desktop/mobile).\n\nYour capabilities:\n- Visual Analysis: You understand page structure.\n- Data Mapping: You can infer that 'Given Name' means 'First Name' from the user profile.\n- Error Recovery: If a submit fails, read the error message and try to correct the input (e.g., password complexity, username taken).\n\nTOOLS USAGE:\n- Use 'Page Query' to scan for fields and button text.\n- Use 'Type Text' to fill inputs.\n- Use 'Click Element' to submit or navigate.\n- Always wait for page loads between steps.",
+                    "maxIterations": 15
+                }
+            },
+            "id": "universal-agent",
+            "name": "Universal Registration Agent",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1.7,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "claude-3-5-sonnet-20241022",
+                "options": {
+                    "maxTokensToSample": 4096,
+                    "temperature": 0.2
+                }
+            },
+            "id": "claude-model",
+            "name": "Claude 3.5 Sonnet",
+            "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+            "typeVersion": 1.2,
+            "position": [
+                700,
+                500
+            ],
+            "credentials": {
+                "anthropicApi": {
+                    "id": "{{ANTHROPIC_CREDENTIAL_ID}}",
+                    "name": "Anthropic API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "window",
+                "operation": "loadUrl",
+                "sessionId": "={{ $('create-session').item.json.data.id }}",
+                "windowId": "={{ $('create-session').item.json.data.windowId }}",
+                "url": "={{ $fromAI(\"url\", \"URL to navigate to\", \"string\") }}"
+            },
+            "id": "tool-load-url",
+            "name": "Load URL",
+            "type": "n8n-nodes-base.airtop",
+            "typeVersion": 1,
+            "position": [
+                500,
+                700
+            ],
+            "credentials": {
+                "airtopApi": {
+                    "id": "{{AIRTOP_CREDENTIAL_ID}}",
+                    "name": "Airtop API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "extraction",
+                "operation": "queryPage",
+                "sessionId": "={{ $('create-session').item.json.data.id }}",
+                "windowId": "={{ $('create-session').item.json.data.windowId }}",
+                "prompt": "={{ $fromAI(\"prompt\", \"Question about page content/structure\", \"string\") }}"
+            },
+            "id": "tool-query-page",
+            "name": "Query Page",
+            "type": "n8n-nodes-base.airtop",
+            "typeVersion": 1,
+            "position": [
+                650,
+                700
+            ],
+            "credentials": {
+                "airtopApi": {
+                    "id": "{{AIRTOP_CREDENTIAL_ID}}",
+                    "name": "Airtop API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "interaction",
+                "operation": "type",
+                "sessionId": "={{ $('create-session').item.json.data.id }}",
+                "windowId": "={{ $('create-session').item.json.data.windowId }}",
+                "elementDescription": "={{ $fromAI(\"selector\", \"Description of the input field\", \"string\") }}",
+                "text": "={{ $fromAI(\"text\", \"Text to type\", \"string\") }}"
+            },
+            "id": "tool-type",
+            "name": "Type Text",
+            "type": "n8n-nodes-base.airtop",
+            "typeVersion": 1,
+            "position": [
+                800,
+                700
+            ],
+            "credentials": {
+                "airtopApi": {
+                    "id": "{{AIRTOP_CREDENTIAL_ID}}",
+                    "name": "Airtop API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "interaction",
+                "operation": "click",
+                "sessionId": "={{ $('create-session').item.json.data.id }}",
+                "windowId": "={{ $('create-session').item.json.data.windowId }}",
+                "elementDescription": "={{ $fromAI(\"selector\", \"Description of element to click\", \"string\") }}"
+            },
+            "id": "tool-click",
+            "name": "Click Element",
+            "type": "n8n-nodes-base.airtop",
+            "typeVersion": 1,
+            "position": [
+                950,
+                700
+            ],
+            "credentials": {
+                "airtopApi": {
+                    "id": "{{AIRTOP_CREDENTIAL_ID}}",
+                    "name": "Airtop API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "DELETE",
+                "url": "={{ $env.AIRTOP_API_URL || 'https://api.airtop.ai' }}/v1/sessions/{{ $json.data.id }}",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "airtopApi",
+                "options": {}
+            },
+            "id": "cleanup",
+            "name": "Cleanup Session",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                300
+            ],
+            "credentials": {
+                "airtopApi": {
+                    "id": "{{AIRTOP_CREDENTIAL_ID}}",
+                    "name": "Airtop API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify($json.output) }}"
+            },
+            "id": "respond",
+            "name": "Respond",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1100,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare Data & Device Config",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Data & Device Config": {
+            "main": [
+                [
+                    {
+                        "node": "Airtop: Create Adaptive Session",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Airtop: Create Adaptive Session": {
+            "main": [
+                [
+                    {
+                        "node": "Universal Registration Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Universal Registration Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Cleanup Session",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Cleanup Session": {
+            "main": [
+                [
+                    {
+                        "node": "Respond",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Claude 3.5 Sonnet": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Universal Registration Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Load URL": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "Universal Registration Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Query Page": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "Universal Registration Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Type Text": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "Universal Registration Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Click Element": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "Universal Registration Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

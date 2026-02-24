@@ -95,7 +95,7 @@ export default function AndroidControl() {
 
       const data = await response.json();
       if (data.success) {
-        console.log('Action performed:', action);
+        // action completed
       } else {
         alert('Action failed: ' + data.error);
       }

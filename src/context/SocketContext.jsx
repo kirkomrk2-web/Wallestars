@@ -10,20 +10,19 @@ export function SocketProvider({ children }) {
   const [actionLogs, setActionLogs] = useState([]);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3000', {
-      transports: ['websocket'],
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5
     });
 
     newSocket.on('connect', () => {
-      console.log('✅ Socket connected');
       setConnected(true);
     });
 
     newSocket.on('disconnect', () => {
-      console.log('❌ Socket disconnected');
       setConnected(false);
     });
 

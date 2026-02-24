@@ -8,6 +8,7 @@ export function setupSocketHandlers(io) {
 
     // Start live screenshot streaming
     socket.on('start-screen-stream', async ({ interval = 1000 }) => {
+      const clampedInterval = Math.max(500, Math.min(Number(interval) || 1000, 30000));
       if (activeStreams.has(socket.id)) {
         clearInterval(activeStreams.get(socket.id));
       }
@@ -26,10 +27,10 @@ export function setupSocketHandlers(io) {
             error: error.message
           });
         }
-      }, interval);
+      }, clampedInterval);
 
       activeStreams.set(socket.id, streamInterval);
-      socket.emit('stream-started', { interval });
+      socket.emit('stream-started', { interval: clampedInterval });
     });
 
     // Stop screenshot streaming
@@ -52,6 +53,7 @@ export function setupSocketHandlers(io) {
 
     // System metrics streaming
     socket.on('start-metrics', ({ interval = 5000 }) => {
+      const clampedMetricsInterval = Math.max(1000, Math.min(Number(interval) || 5000, 60000));
       const metricsInterval = setInterval(() => {
         const metrics = {
           memory: process.memoryUsage(),
@@ -60,7 +62,7 @@ export function setupSocketHandlers(io) {
         };
 
         socket.emit('metrics-update', metrics);
-      }, interval);
+      }, clampedMetricsInterval);
 
       activeStreams.set(`metrics-${socket.id}`, metricsInterval);
     });

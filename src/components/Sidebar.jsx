@@ -13,10 +13,12 @@ import {
   Server,
   Network,
   Brain,
-  Database
+  Database,
+  ShieldCheck
 } from 'lucide-react';
 
 const menuItems = [
+  { id: 'eligibility', name: 'Eligibility Check', icon: ShieldCheck },
   { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
   { id: 'chat', name: 'Claude Chat', icon: MessageSquare },
   { id: 'computer', name: 'Computer Use', icon: Monitor },
