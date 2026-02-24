@@ -12,6 +12,7 @@ import { sseRouter } from './routes/sse.js';
 import { hostingerRouter } from './routes/hostinger.js';
 import { orchestrationRouter } from './routes/orchestration.js';
 import { setupSocketHandlers } from './socket/handlers.js';
+import { authMiddleware } from './middleware/auth.js';
 
 // New integrations
 import { airtopRouter } from './routes/airtop.js';
@@ -30,6 +31,14 @@ import { wallesterRouter } from './routes/wallester.js';
 
 dotenv.config();
 
+// Startup Validation
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('⚠️ WARNING: ANTHROPIC_API_KEY is not set. Claude AI features and Admin access via sk-ant- keys will be disabled.');
+}
+if (!process.env.WALLESTARS_API_KEY) {
+  console.warn('⚠️ WARNING: WALLESTARS_API_KEY is not set. External agents using ws- keys will not be able to authenticate.');
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -45,6 +54,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
+app.set('trust proxy', 1); // Trust first proxy (Nginx/Traefik)
 const corsOrigin = process.env.NODE_ENV === 'production'
   ? (process.env.FRONTEND_URL || process.env.ALLOWED_ORIGIN || false)
   : '*';
@@ -55,6 +65,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.static('dist'));
+
+// Authentication Middleware
+app.use('/api', authMiddleware);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -144,6 +157,9 @@ httpServer.listen(PORT, () => {
 ║   - MCP SSE Integration                              ║
 ║   - AI Agent Orchestration Farm                      ║
 ║   - Hostinger VPS Management                         ║
+║                                                       ║
+║   Security:                                           ║
+║   ${process.env.WALLESTARS_API_KEY ? '✅' : '⚠️'} Agent Auth (WALLESTARS_API_KEY)              ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
   `);

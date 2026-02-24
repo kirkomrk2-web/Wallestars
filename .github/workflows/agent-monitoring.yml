@@ -3,7 +3,7 @@ name: Agent Monitoring & Health Check
 on:
   schedule:
     # Провери агентите на всеки 10 минути
-    - cron: '*/10 * * * *'
+    - cron: '0 6,12,18 * * *'
   workflow_dispatch:
 
 permissions:
