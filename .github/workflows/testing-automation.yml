@@ -214,8 +214,8 @@ jobs:
                 body: `🧪 Test session създадена: #${issue.number}\n\nПроследи прогреса на тестването там.`
               });
             } catch (error) {
-              if (error.status === 410) {
-                console.log('⚠️ Issues feature is disabled in this repository. Skipping test session issue creation.');
+              if (error.status === 410 || error.message.includes('Issues has been disabled')) {
+                console.log('⚠️ Issues are disabled in this repository. Skipping Test Session issue creation.');
               } else {
                 throw error;
               }

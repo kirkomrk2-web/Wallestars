@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import screenshot from 'screenshot-desktop';
 import { getPermissions } from '../services/permissions.js';
+import db from '../db.js';
 
 const execAsync = promisify(exec);
 const router = Router();
@@ -173,6 +174,12 @@ router.post('/execute', permissions.middleware('computer.execute'), async (req, 
       output: result.stdout,
       error: result.stderr
     });
+
+    try {
+      db.prepare('INSERT INTO system_logs (type, details) VALUES (?, ?)').run('command', `Executed: ${command}`);
+    } catch (logError) {
+      console.error('Logging failed:', logError);
+    }
   } catch (error) {
     console.error('Execute error:', error);
     res.status(500).json({
