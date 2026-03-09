@@ -16,7 +16,11 @@
     "test:watch": "vitest",
     "lint": "echo \"Linting not configured yet\" && exit 0",
     "validate-env": "node validate-env.js",
-    "prestart": "node validate-env.js"
+    "prestart": "node validate-env.js",
+    "test:e2e": "playwright test tests/e2e",
+    "test:e2e:headed": "playwright test tests/e2e --headed",
+    "test:accessibility": "playwright test tests/accessibility",
+    "test:lighthouse": "lhci autorun"
   },
   "keywords": [
     "claude",
@@ -61,7 +65,9 @@
     "screenshot-desktop": "^1.15.3",
     "tailwindcss": "^3.4.1",
     "vite": "^6.4.1",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "@playwright/test": "^1.43.0",
+    "@axe-core/playwright": "^4.9.0"
   },
   "engines": {
     "node": ">=20.x"
