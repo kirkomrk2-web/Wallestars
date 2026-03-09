@@ -159,67 +159,36 @@ jobs:
 
   create-test-session:
     runs-on: ubuntu-latest
-    name: Създай Test Session
+    name: Създай Test Session (n8n Airtop)
     needs: build-verification
     if: github.event_name == 'pull_request'
-    
+    env:
+      N8N_AIRTOP_WEBHOOK_URL: ${{ secrets.N8N_AIRTOP_WEBHOOK_URL }}
+
     steps:
-      - name: Checkout код
-        uses: actions/checkout@v4
-
-      - name: Създай test session issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const prTitle = context.payload.pull_request.title;
-            
-            const sessionBody = [
-              `# 🧪 Test Session за PR #${prNumber}`,
-              '',
-              '## PR Информация',
-              `- **Заглавие:** ${prTitle}`,
-              `- **Автор:** @${context.payload.pull_request.user.login}`,
-              `- **URL:** ${context.payload.pull_request.html_url}`,
-              '',
-              '## Test Checklist',
-              '- [ ] Unit тестове преминати',
-              '- [ ] Integration тестове преминати',
-              '- [ ] E2E тестове преминати',
-              '- [ ] Build verification успешна',
-              '- [ ] Security scan чиста',
-              '- [ ] Code quality одобрена',
-              '',
-              '## Статус',
-              '🔄 **В процес на тестване**',
-              '',
-              '---',
-              '_Автоматично създадена test session_'
-            ].join('\n');
-            
-            try {
-              const { data: issue } = await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: `🧪 Test Session: PR #${prNumber} - ${prTitle}`,
-                body: sessionBody,
-                labels: ['test-session', 'automated', `pr-${prNumber}`]
-              });
-
-              // Добави коментар към PR
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: `🧪 Test session създадена: #${issue.number}\n\nПроследи прогреса на тестването там.`
-              });
-            } catch (error) {
-              if (error.status === 410 || error.message.includes('Issues has been disabled')) {
-                console.log('⚠️ Issues are disabled in this repository. Skipping Test Session issue creation.');
-              } else {
-                throw error;
-              }
-            }
+      - name: Trigger n8n Airtop webhook за test session
+        run: |
+          if [ -z "${N8N_AIRTOP_WEBHOOK_URL}" ]; then
+            echo "⚠️ N8N_AIRTOP_WEBHOOK_URL secret not set — skipping Airtop webhook call."
+            exit 0
+          fi
+          curl -fsSL -X POST "${N8N_AIRTOP_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event": "test-session-start",
+              "pr_number": "${{ github.event.pull_request.number }}",
+              "pr_title": "${{ github.event.pull_request.title }}",
+              "pr_author": "${{ github.event.pull_request.user.login }}",
+              "pr_url": "${{ github.event.pull_request.html_url }}",
+              "repository": "${{ github.repository }}",
+              "sha": "${{ github.sha }}",
+              "ref": "${{ github.head_ref }}",
+              "run_id": "${{ github.run_id }}",
+              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "build_status": "${{ needs.build-verification.result }}",
+              "timestamp": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'"
+            }' \
+            || echo "⚠️ Airtop webhook call failed — continuing pipeline."
 
   notify-results:
     runs-on: ubuntu-latest
@@ -232,7 +201,11 @@ jobs:
     steps:
       - name: Изпрати резултати към n8n
         run: |
-          curl -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
+          if [ -z "${N8N_WEBHOOK_URL}" ]; then
+            echo "⚠️ N8N_WEBHOOK_URL secret not set — skipping n8n notification."
+            exit 0
+          fi
+          curl -fsSL -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
             -H "Content-Type: application/json" \
             -d '{
               "workflow": "testing-automation",
@@ -240,7 +213,31 @@ jobs:
               "code_quality": "${{ needs.code-quality.result }}",
               "security_scan": "${{ needs.security-scan.result }}",
               "build_verification": "${{ needs.build-verification.result }}",
-              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+              "timestamp": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'",
               "repository": "${{ github.repository }}",
+              "run_id": "${{ github.run_id }}",
+              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "pr_number": "${{ github.event.pull_request.number || 'N/A' }}"
-            }'
+            }' \
+            || echo "⚠️ n8n webhook call failed — non-blocking."
+
+      - name: Notify Slack on completion
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "CI Update — `${{ github.repository }}`",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Automated Testing & Deployment*\n*Tests:* ${{ needs.run-tests.result }} | *Quality:* ${{ needs.code-quality.result }} | *Security:* ${{ needs.security-scan.result }} | *Build:* ${{ needs.build-verification.result }}\n*Branch:* `${{ github.ref_name }}`  *Actor:* ${{ github.actor }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
