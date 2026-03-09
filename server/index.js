@@ -84,6 +84,12 @@ const limiter = rateLimit({
   standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
+const spaFallbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5000,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false
+});
 app.use('/api/', limiter);
 // Authentication Middleware
 app.use('/api', authMiddleware);
@@ -146,7 +152,7 @@ app.use('/api/logs', logsRouter);
 app.use('/sse', sseRouter);
 
 // Catch-all for SPA (must be after API routes)
-app.get('*', (req, res) => {
+app.get('*', spaFallbackLimiter, (req, res) => {
   // Don't intercept API calls that might have missed their route
   if (req.path.startsWith('/api/') || req.path.startsWith('/sse')) {
     return res.status(404).json({ error: 'Not Found' });
