@@ -26,7 +26,9 @@ permissions:
 
 jobs:
   initialize-session:
-    if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
+    if: |
+      (github.event.action == 'opened' || github.event.action == 'ready_for_review') &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     name: Initialize PR Session
     outputs:
@@ -295,7 +297,9 @@ jobs:
   auto-merge-check:
     runs-on: ubuntu-latest
     name: Auto-Merge Check
-    if: github.event.review && github.event.review.state == 'approved'
+    if: |
+      github.event.review && github.event.review.state == 'approved' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     
     steps:
       - name: Checkout code
@@ -386,7 +390,9 @@ jobs:
             }
 
   close-session:
-    if: github.event.action == 'closed'
+    if: |
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     name: Close PR Session
     env:

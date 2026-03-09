@@ -157,69 +157,36 @@ jobs:
           path: dist/
           retention-days: 7
 
-  create-test-session:
+  trigger-airtop-session:
     runs-on: ubuntu-latest
     name: Създай Test Session
     needs: build-verification
-    if: github.event_name == 'pull_request'
+    # Skip for fork PRs — GITHUB_TOKEN lacks write permissions for cross-repo triggers
+    # Prevents: HttpError: Resource not accessible by integration
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      N8N_AIRTOP_WEBHOOK_URL: ${{ secrets.N8N_AIRTOP_WEBHOOK_URL }}
     
     steps:
-      - name: Checkout код
-        uses: actions/checkout@v4
-
-      - name: Създай test session issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const prTitle = context.payload.pull_request.title;
-            
-            const sessionBody = [
-              `# 🧪 Test Session за PR #${prNumber}`,
-              '',
-              '## PR Информация',
-              `- **Заглавие:** ${prTitle}`,
-              `- **Автор:** @${context.payload.pull_request.user.login}`,
-              `- **URL:** ${context.payload.pull_request.html_url}`,
-              '',
-              '## Test Checklist',
-              '- [ ] Unit тестове преминати',
-              '- [ ] Integration тестове преминати',
-              '- [ ] E2E тестове преминати',
-              '- [ ] Build verification успешна',
-              '- [ ] Security scan чиста',
-              '- [ ] Code quality одобрена',
-              '',
-              '## Статус',
-              '🔄 **В процес на тестване**',
-              '',
-              '---',
-              '_Автоматично създадена test session_'
-            ].join('\n');
-            
-            try {
-              const { data: issue } = await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: `🧪 Test Session: PR #${prNumber} - ${prTitle}`,
-                body: sessionBody,
-                labels: ['test-session', 'automated', `pr-${prNumber}`]
-              });
-
-              // Добави коментар към PR
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: `🧪 Test session създадена: #${issue.number}\n\nПроследи прогреса на тестването там.`
-              });
-            } catch (error) {
-              if (error.status === 410 || error.message.includes('Issues has been disabled')) {
-                console.log('⚠️ Issues are disabled in this repository. Skipping Test Session issue creation.');
-              } else {
-                throw error;
-              }
-            }
+      - name: Trigger Airtop Test Session via n8n
+        run: |
+          if [ -z "${N8N_AIRTOP_WEBHOOK_URL}" ]; then
+            echo "⚠️  N8N_AIRTOP_WEBHOOK_URL not configured — skipping"
+            exit 0
+          fi
+          HTTP_STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "${N8N_AIRTOP_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "{\"event\":\"pr_test_session\",\"pr_number\":\"${{ github.event.pull_request.number }}\",\"repo\":\"${{ github.repository }}\",\"sha\":\"${{ github.sha }}\"}")
+          echo "n8n: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Airtop session triggered"
+          else
+            echo "⚠️  n8n returned $HTTP_STATUS — non-blocking"
+          fi
+        continue-on-error: true
 
   notify-results:
     runs-on: ubuntu-latest
