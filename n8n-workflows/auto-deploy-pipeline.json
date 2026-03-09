@@ -1,0 +1,705 @@
+{
+  "name": "Auto-Deploy Pipeline (GitHub → Airtop → Callback → Slack)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auto-deploy",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "GitHub Actions Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "webhookId": "auto-deploy"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst event = {\n  trigger: body.trigger || 'unknown',\n  repository: body.repository || 'kirkomrk2-web/Wallestars',\n  branch: body.branch || body.ref || 'main',\n  sha: body.sha || 'unknown',\n  actor: body.actor || 'github-actions',\n  run_id: body.run_id || '',\n  run_url: body.run_url || '',\n  pr_number: body.pr_number || null,\n  test_status: body.test_status || 'unknown',\n  build_status: body.build_status || 'unknown',\n  timestamp: body.timestamp || new Date().toISOString()\n};\n\n// Validate required fields\nif (!event.sha || event.sha === 'unknown') {\n  throw new Error('Missing required field: sha');\n}\n\n// Only deploy from main branch or when explicitly triggered\nconst shouldDeploy = event.branch === 'main' || event.trigger === 'workflow_dispatch';\nif (!shouldDeploy) {\n  return { json: { ...event, skip: true, reason: `Branch '${event.branch}' is not a deploy target` } };\n}\n\nreturn { json: { ...event, skip: false } };"
+      },
+      "id": "node-parse-validate",
+      "name": "Parse & Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-if-skip",
+      "name": "Should Deploy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'skipped', reason: $json.reason }) }}"
+      },
+      "id": "node-respond-skip",
+      "name": "Respond (Skipped)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 280]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_AIRTOP_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Source",
+              "value": "wallestars-auto-deploy"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "deploy-validation"
+            },
+            {
+              "name": "repository",
+              "value": "={{ $json.repository }}"
+            },
+            {
+              "name": "branch",
+              "value": "={{ $json.branch }}"
+            },
+            {
+              "name": "sha",
+              "value": "={{ $json.sha }}"
+            },
+            {
+              "name": "actor",
+              "value": "={{ $json.actor }}"
+            },
+            {
+              "name": "run_id",
+              "value": "={{ $json.run_id }}"
+            },
+            {
+              "name": "run_url",
+              "value": "={{ $json.run_url }}"
+            },
+            {
+              "name": "test_status",
+              "value": "={{ $json.test_status }}"
+            },
+            {
+              "name": "callback_webhook",
+              "value": "={{ $env.N8N_WEBHOOK_URL }}/webhook/deploy-callback"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-trigger-airtop",
+      "name": "Trigger Airtop Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 520],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const airtopResponse = $input.first().json;\nconst prevData = $('Parse & Validate Payload').first().json;\n\n// Extract session ID from Airtop response\nconst sessionId = airtopResponse?.sessionId\n  || airtopResponse?.session_id\n  || airtopResponse?.data?.sessionId\n  || `manual-${Date.now()}`;\n\nconst airtopSuccess = !airtopResponse?.error && airtopResponse !== null;\n\nreturn {\n  json: {\n    ...prevData,\n    airtop_session_id: sessionId,\n    airtop_triggered: airtopSuccess,\n    airtop_response: airtopResponse,\n    poll_attempt: 0,\n    poll_start: new Date().toISOString()\n  }\n};"
+      },
+      "id": "node-capture-session",
+      "name": "Capture Airtop Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 520]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "node-wait-airtop",
+      "name": "Wait for Airtop (30s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 520]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_AIRTOP_WEBHOOK_URL }}/status/={{ $json.airtop_session_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-poll-airtop",
+      "name": "Poll Airtop Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1560, 520],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const pollResponse = $input.first().json;\nconst prevData = $('Capture Airtop Session').first().json;\n\nconst status = pollResponse?.status\n  || pollResponse?.data?.status\n  || (pollResponse?.error ? 'error' : 'unknown');\n\nconst isDone = ['completed', 'success', 'done', 'finished', 'failed', 'error'].includes(status?.toLowerCase());\nconst isSuccess = ['completed', 'success', 'done', 'finished'].includes(status?.toLowerCase());\n\nreturn {\n  json: {\n    ...prevData,\n    poll_attempt: (prevData.poll_attempt || 0) + 1,\n    poll_status: status,\n    poll_response: pollResponse,\n    is_done: isDone,\n    is_success: isSuccess,\n    validation_result: pollResponse?.result || pollResponse?.data?.result || null,\n    validation_errors: pollResponse?.errors || pollResponse?.data?.errors || []\n  }\n};"
+      },
+      "id": "node-parse-poll",
+      "name": "Parse Poll Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_done }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-if-done",
+      "name": "Airtop Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2000, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.poll_attempt }}",
+              "operation": "smallerEqual",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "node-if-max-polls",
+      "name": "Max Polls Reached?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2220, 660]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-if-success",
+      "name": "Deploy Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2220, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/webhook/deploy-callback",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Deploy-Status",
+              "value": "success"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "repository",
+              "value": "={{ $json.repository }}"
+            },
+            {
+              "name": "branch",
+              "value": "={{ $json.branch }}"
+            },
+            {
+              "name": "sha",
+              "value": "={{ $json.sha }}"
+            },
+            {
+              "name": "airtop_session_id",
+              "value": "={{ $json.airtop_session_id }}"
+            },
+            {
+              "name": "validation_result",
+              "value": "={{ JSON.stringify($json.validation_result) }}"
+            },
+            {
+              "name": "run_url",
+              "value": "={{ $json.run_url }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-callback-success",
+      "name": "Callback — Deploy Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2440, 280],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/webhook/deploy-callback",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Deploy-Status",
+              "value": "failed"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "failed"
+            },
+            {
+              "name": "repository",
+              "value": "={{ $json.repository }}"
+            },
+            {
+              "name": "branch",
+              "value": "={{ $json.branch }}"
+            },
+            {
+              "name": "sha",
+              "value": "={{ $json.sha }}"
+            },
+            {
+              "name": "airtop_session_id",
+              "value": "={{ $json.airtop_session_id }}"
+            },
+            {
+              "name": "poll_status",
+              "value": "={{ $json.poll_status }}"
+            },
+            {
+              "name": "validation_errors",
+              "value": "={{ JSON.stringify($json.validation_errors) }}"
+            },
+            {
+              "name": "run_url",
+              "value": "={{ $json.run_url }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-callback-failed",
+      "name": "Callback — Deploy Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2440, 520],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "resource": "message",
+        "operation": "post",
+        "channel": "#all-workmail-pro",
+        "text": "✅ *Deploy SUCCESS* — `{{ $('Parse & Validate Payload').first().json.repository }}`",
+        "otherOptions": {
+          "attachments": [
+            {
+              "color": "#2ecc71",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Repository:* `{{ $json.repository }}`\n*Branch:* `{{ $json.branch }}`\n*SHA:* `{{ $json.sha.substring(0, 8) }}`\n*Actor:* {{ $json.actor }}\n*Airtop Session:* `{{ $json.airtop_session_id }}`\n*Run:* <{{ $json.run_url }}|View CI Run>"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "id": "node-slack-success",
+      "name": "Slack — Deploy Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2660, 280],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack Bot Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "resource": "message",
+        "operation": "post",
+        "channel": "#all-workmail-pro",
+        "text": "❌ *Deploy FAILED* — `{{ $('Parse & Validate Payload').first().json.repository }}`",
+        "otherOptions": {
+          "attachments": [
+            {
+              "color": "#e74c3c",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Repository:* `{{ $json.repository }}`\n*Branch:* `{{ $json.branch }}`\n*SHA:* `{{ $json.sha.substring(0, 8) }}`\n*Actor:* {{ $json.actor }}\n*Poll Status:* `{{ $json.poll_status }}`\n*Errors:* {{ JSON.stringify($json.validation_errors) }}\n*Run:* <{{ $json.run_url }}|View CI Run>"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "id": "node-slack-failed",
+      "name": "Slack — Deploy Failed",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2660, 520],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack Bot Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "resource": "message",
+        "operation": "post",
+        "channel": "#all-workmail-pro",
+        "text": "⏱️ *Deploy Timeout* — Airtop agent did not complete within 5 poll attempts (2.5 min)",
+        "otherOptions": {
+          "attachments": [
+            {
+              "color": "#f39c12",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Repository:* `{{ $json.repository }}`\n*Branch:* `{{ $json.branch }}`\n*SHA:* `{{ $json.sha.substring(0, 8) }}`\n*Airtop Session:* `{{ $json.airtop_session_id }}`\n*Last Status:* `{{ $json.poll_status }}`\n*Run:* <{{ $json.run_url }}|View CI Run>"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "id": "node-slack-timeout",
+      "name": "Slack — Timeout Warning",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2440, 780],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack Bot Token"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'accepted', airtop_session_id: $('Capture Airtop Session').first().json.airtop_session_id, repository: $('Parse & Validate Payload').first().json.repository, sha: $('Parse & Validate Payload').first().json.sha }) }}"
+      },
+      "id": "node-respond-accepted",
+      "name": "Respond (Accepted)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 280]
+    }
+  ],
+  "connections": {
+    "GitHub Actions Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Should Deploy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Deploy?": {
+      "main": [
+        [
+          {
+            "node": "Respond (Skipped)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trigger Airtop Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Airtop Agent": {
+      "main": [
+        [
+          {
+            "node": "Capture Airtop Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Airtop Session": {
+      "main": [
+        [
+          {
+            "node": "Respond (Accepted)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait for Airtop (30s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Airtop (30s)": {
+      "main": [
+        [
+          {
+            "node": "Poll Airtop Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Airtop Status": {
+      "main": [
+        [
+          {
+            "node": "Parse Poll Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Poll Result": {
+      "main": [
+        [
+          {
+            "node": "Airtop Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtop Done?": {
+      "main": [
+        [
+          {
+            "node": "Deploy Success?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Max Polls Reached?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Max Polls Reached?": {
+      "main": [
+        [
+          {
+            "node": "Wait for Airtop (30s)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack — Timeout Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deploy Success?": {
+      "main": [
+        [
+          {
+            "node": "Callback — Deploy Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Callback — Deploy Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Callback — Deploy Success": {
+      "main": [
+        [
+          {
+            "node": "Slack — Deploy Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Callback — Deploy Failed": {
+      "main": [
+        [
+          {
+            "node": "Slack — Deploy Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "1",
+  "id": "auto-deploy-pipeline",
+  "meta": {
+    "instanceId": "wallestars-n8n",
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    { "name": "deploy" },
+    { "name": "airtop" },
+    { "name": "ci-cd" }
+  ],
+  "_setup_notes": {
+    "webhook_url": "POST https://n8n.srv1201204.hstgr.cloud/webhook/auto-deploy",
+    "required_env_vars": {
+      "N8N_AIRTOP_WEBHOOK_URL": "Airtop webhook URL to trigger the browser agent",
+      "N8N_WEBHOOK_URL": "Base URL of this n8n instance (https://n8n.srv1201204.hstgr.cloud)"
+    },
+    "required_credentials": {
+      "slackApi": "Slack Bot Token with chat:write scope — set as 'Slack Bot Token' credential in n8n",
+      "githubOAuth2Api": "GitHub OAuth2 app credential (already configured in github-automation workflow)"
+    },
+    "import_steps": [
+      "1. Open https://n8n.srv1201204.hstgr.cloud",
+      "2. Settings → Import workflow → paste this JSON",
+      "3. Set N8N_AIRTOP_WEBHOOK_URL and N8N_WEBHOOK_URL as n8n environment variables",
+      "4. Configure 'Slack Bot Token' credential with your bot token",
+      "5. Activate the workflow",
+      "6. Note the webhook URL shown on the 'GitHub Actions Trigger' node",
+      "7. Add that URL as N8N_AIRTOP_WEBHOOK_URL secret in GitHub repo settings"
+    ]
+  }
+}

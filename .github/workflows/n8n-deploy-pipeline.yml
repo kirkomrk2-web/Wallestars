@@ -1,0 +1,140 @@
+name: n8n Auto-Deploy Pipeline
+
+# Triggers AFTER the CI workflow passes on main — or manually.
+# Sends a structured payload to the n8n auto-deploy webhook which
+# orchestrates Airtop AI validation and posts a callback result.
+
+on:
+  workflow_run:
+    workflows: ["Automated Testing & Deployment", "CI"]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - ".github/workflows/n8n-deploy-pipeline.yml"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual deploy trigger"
+        required: false
+        default: "Manual trigger"
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-n8n-deploy:
+    runs-on: ubuntu-latest
+    name: Trigger n8n Deploy Pipeline
+    # For workflow_run: only proceed if upstream CI passed
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Check N8N_AIRTOP_WEBHOOK_URL secret
+        env:
+          N8N_AIRTOP_WEBHOOK_URL: ${{ secrets.N8N_AIRTOP_WEBHOOK_URL }}
+        run: |
+          if [ -z "${N8N_AIRTOP_WEBHOOK_URL}" ]; then
+            echo "⚠️ N8N_AIRTOP_WEBHOOK_URL secret is not set."
+            echo "Add it in: Settings → Secrets → Actions → N8N_AIRTOP_WEBHOOK_URL"
+            echo "Value: https://n8n.srv1201204.hstgr.cloud/webhook/auto-deploy"
+            exit 0
+          fi
+          echo "N8N_AIRTOP_WEBHOOK_URL is configured."
+
+      - name: Build deploy payload
+        id: payload
+        run: |
+          TRIGGER="${{ github.event_name }}"
+          if [ "$TRIGGER" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            RUN_ID="${{ github.event.workflow_run.id }}"
+            RUN_URL="${{ github.event.workflow_run.html_url }}"
+            TEST_STATUS="${{ github.event.workflow_run.conclusion }}"
+          else
+            SHA="${{ github.sha }}"
+            RUN_ID="${{ github.run_id }}"
+            RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            TEST_STATUS="upstream-skipped"
+          fi
+
+          PAYLOAD=$(cat <<JSON
+          {
+            "trigger": "${TRIGGER}",
+            "repository": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "sha": "${SHA}",
+            "actor": "${{ github.actor }}",
+            "run_id": "${RUN_ID}",
+            "run_url": "${RUN_URL}",
+            "test_status": "${TEST_STATUS}",
+            "build_status": "success",
+            "manual_reason": "${{ github.event.inputs.reason || '' }}",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          JSON
+          )
+          echo "payload=${PAYLOAD}" >> $GITHUB_OUTPUT
+          echo "sha=${SHA}" >> $GITHUB_OUTPUT
+          echo "run_url=${RUN_URL}" >> $GITHUB_OUTPUT
+
+      - name: POST to n8n auto-deploy webhook
+        id: n8n_trigger
+        env:
+          N8N_AIRTOP_WEBHOOK_URL: ${{ secrets.N8N_AIRTOP_WEBHOOK_URL }}
+        run: |
+          if [ -z "${N8N_AIRTOP_WEBHOOK_URL}" ]; then
+            echo "Skipping — N8N_AIRTOP_WEBHOOK_URL not set."
+            exit 0
+          fi
+
+          echo "Triggering n8n deploy pipeline for SHA ${{ steps.payload.outputs.sha }}..."
+
+          RESPONSE=$(curl -fsSL \
+            -X POST "${N8N_AIRTOP_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Run-ID: ${{ github.run_id }}" \
+            -H "X-GitHub-Repo: ${{ github.repository }}" \
+            --max-time 30 \
+            -w "\n%{http_code}" \
+            -d '${{ steps.payload.outputs.payload }}' \
+            2>/dev/null) || {
+              echo "⚠️ curl failed — n8n may be temporarily unreachable."
+              exit 0
+            }
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP status: ${HTTP_CODE}"
+          echo "Response: ${BODY}"
+
+          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 300 ]; then
+            echo "✅ n8n pipeline triggered successfully."
+            echo "n8n_status=accepted" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ n8n returned HTTP ${HTTP_CODE} — pipeline may not have started."
+            echo "n8n_status=error-${HTTP_CODE}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Summarise
+        if: always()
+        run: |
+          echo "## n8n Deploy Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | \`${{ github.repository }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA | \`${{ steps.payload.outputs.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| n8n Status | \`${{ steps.n8n_trigger.outputs.n8n_status || 'skipped' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| n8n Webhook | \`https://n8n.srv1201204.hstgr.cloud/webhook/auto-deploy\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### n8n Workflow" >> $GITHUB_STEP_SUMMARY
+          echo "Workflow JSON: \`n8n-workflows/auto-deploy-pipeline.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "Import at: https://n8n.srv1201204.hstgr.cloud" >> $GITHUB_STEP_SUMMARY
