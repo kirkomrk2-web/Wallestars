@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock socket.io-client before importing components
 vi.mock('socket.io-client', () => ({
@@ -36,21 +38,53 @@ vi.mock('../context/SocketContext', () => ({
     SocketProvider: ({ children }) => children,
 }));
 
+vi.mock('../components/Sidebar', () => ({
+    default: () => <div data-testid="sidebar">Sidebar</div>,
+}));
+
+vi.mock('../components/Header', () => ({
+    default: () => <div data-testid="header">Header</div>,
+}));
+
+vi.mock('../pages/Dashboard', () => ({
+    default: () => <div>Dashboard Page</div>,
+}));
+
+vi.mock('../pages/Settings', () => ({
+    default: () => <div>Settings Page</div>,
+}));
+
+vi.mock('../pages/SystemLogs', () => ({
+    default: () => <div>System Logs Page</div>,
+}));
+
+import App from '../App';
+
 describe('App Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it('testing infrastructure is set up correctly', () => {
-        // Basic test to verify vitest is working
-        expect(true).toBe(true);
-        expect(1 + 1).toBe(2);
+    it('renders the matching client-side route after the React Router migration', async () => {
+        render(
+            <MemoryRouter initialEntries={['/settings']}>
+                <App />
+            </MemoryRouter>
+        );
+
+        expect(await screen.findByText('Settings Page')).toBeInTheDocument();
+        expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+        expect(screen.getByTestId('header')).toBeInTheDocument();
     });
 
-    it('mock functions work correctly', () => {
-        const mockFn = vi.fn();
-        mockFn('test');
-        expect(mockFn).toHaveBeenCalledWith('test');
+    it('redirects unknown client-side routes back to the dashboard', async () => {
+        render(
+            <MemoryRouter initialEntries={['/not-a-real-route']}>
+                <App />
+            </MemoryRouter>
+        );
+
+        expect(await screen.findByText('Dashboard Page')).toBeInTheDocument();
     });
 });
 

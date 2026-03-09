@@ -43,6 +43,16 @@
 - 📊 Monitor system metrics in real-time
 - 🎨 Enjoy a stunning, responsive interface
 
+## 🔐 GitHub Actions Secrets
+
+Automation workflows require these repository secrets:
+
+- `N8N_AIRTOP_WEBHOOK_URL`
+- `N8N_TOKEN`
+- `N8N_WEBHOOK_URL`
+
+See **[.github/SECRETS.md](.github/SECRETS.md)** for the full workflow secret list and setup details.
+
 ---
 
 ## ✨ Features

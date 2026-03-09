@@ -14,6 +14,7 @@ import {
 import ThemeSettings from '../components/ThemeSettings';
 
 export default function Settings() {
+  const nodeVersion = typeof process !== 'undefined' && process?.version ? process.version : 'N/A';
   const [settings, setSettings] = useState({
     apiKey: '',
     computerUseEnabled: true,
@@ -195,7 +196,7 @@ export default function Settings() {
         </h2>
         <div className="grid grid-cols-2 gap-4">
           <InfoItem label="Version" value="1.0.0" />
-          <InfoItem label="Node.js" value={process.version || 'N/A'} />
+          <InfoItem label="Node.js" value={nodeVersion} />
           <InfoItem label="Platform" value={navigator.platform} />
           <InfoItem label="User Agent" value={navigator.userAgent.split(' ')[0]} />
         </div>
