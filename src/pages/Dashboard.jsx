@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import PlatformLinks from '../components/PlatformLinks';
+import TopSessionsAccordion from '../components/TopSessionsAccordion';
 
 export default function Dashboard() {
   const { connected, actionLogs } = useSocket();
@@ -510,6 +511,9 @@ export default function Dashboard() {
           <ExternalLink className="w-4 h-4" />
         </motion.a>
       </motion.div>
+
+      {/* Top 10 Longest Claude Sessions – Accordion */}
+      <TopSessionsAccordion />
 
       {/* System Status - Enhanced */}
       <motion.div
