@@ -200,4 +200,8 @@ httpServer.listen(PORT, () => {
   `);
 });
 
+// OTP Watchdog
+import { startOtpWatchdog } from './utils/otpWatchdog.js';
+startOtpWatchdog();
+
 export { app, httpServer, io };
