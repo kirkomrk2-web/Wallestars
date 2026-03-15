@@ -112,6 +112,8 @@ function App() {
                         <Route path="/multiagent" element={<MultiAgentDesign />} />
                         <Route path="/agentregistry" element={<AgentRegistry />} />
                         <Route path="/eligibility" element={<EligibilityCheck />} />
+                        {/* Public route – no authentication required */}
+                        <Route path="/check" element={<EligibilityCheck />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/logs" element={<SystemLogs />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
