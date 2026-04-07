@@ -10,6 +10,14 @@ const STUCK_THRESHOLD_MINUTES = 15;
 
 const supabase = SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+// Tracks IDs that have already triggered a Telegram alert to prevent duplicates
+const alertedIds = new Set();
+
+// Clears the alerted-IDs set (used in tests and can be called on service restart)
+export function clearAlertedIds() {
+  alertedIds.clear();
+}
+
 export async function checkStuckOtpRegistrations() {
   if (!supabase) return;
 
@@ -22,9 +30,30 @@ export async function checkStuckOtpRegistrations() {
     .lt('updated_at', cutoff)
     .limit(10);
 
-  if (error || !data || data.length === 0) return;
+  if (error || !data || data.length === 0) {
+    // Remove resolved IDs (no longer stuck) from the alerted set
+    if (!error && data) {
+      const currentIds = new Set(data.map(r => r.id));
+      for (const id of alertedIds) {
+        if (!currentIds.has(id)) alertedIds.delete(id);
+      }
+    }
+    return;
+  }
 
-  const message = `⚠️ OTP Watchdog Alert\n${data.length} registration(s) stuck in otp_pending > ${STUCK_THRESHOLD_MINUTES}min\nIDs: ${data.map(r => r.id).join(', ')}`;
+  // Remove resolved IDs (no longer in the current stuck list)
+  const currentIds = new Set(data.map(r => r.id));
+  for (const id of alertedIds) {
+    if (!currentIds.has(id)) alertedIds.delete(id);
+  }
+
+  // Only alert on registrations that haven't been alerted yet
+  const newlyStuck = data.filter(r => !alertedIds.has(r.id));
+  if (newlyStuck.length === 0) return;
+
+  newlyStuck.forEach(r => alertedIds.add(r.id));
+
+  const message = `⚠️ OTP Watchdog Alert\n${newlyStuck.length} registration(s) stuck in otp_pending > ${STUCK_THRESHOLD_MINUTES}min\nIDs: ${newlyStuck.map(r => r.id).join(', ')}`;
 
   if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
