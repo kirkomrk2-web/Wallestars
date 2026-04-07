@@ -30,22 +30,15 @@ export async function checkStuckOtpRegistrations() {
     .lt('updated_at', cutoff)
     .limit(10);
 
-  if (error || !data || data.length === 0) {
-    // Remove resolved IDs (no longer stuck) from the alerted set
-    if (!error && data) {
-      const currentIds = new Set(data.map(r => r.id));
-      for (const id of alertedIds) {
-        if (!currentIds.has(id)) alertedIds.delete(id);
-      }
-    }
-    return;
-  }
+  if (error || !data) return;
 
   // Remove resolved IDs (no longer in the current stuck list)
   const currentIds = new Set(data.map(r => r.id));
   for (const id of alertedIds) {
     if (!currentIds.has(id)) alertedIds.delete(id);
   }
+
+  if (data.length === 0) return;
 
   // Only alert on registrations that haven't been alerted yet
   const newlyStuck = data.filter(r => !alertedIds.has(r.id));
