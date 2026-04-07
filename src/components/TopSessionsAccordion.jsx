@@ -32,7 +32,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-03-01T09:15:00Z',
     updatedAt: '2026-03-01T13:42:00Z',
-    bulgariанTopic: 'Изграждане на React архитектура за мулти-агент контролно табло с реално-временни Socket.IO актуализации и Framer Motion анимации.',
+    bulgarianTopic: 'Изграждане на React архитектура за мулти-агент контролно табло с реално-временни Socket.IO актуализации и Framer Motion анимации.',
     artifacts: ['src/pages/Dashboard.jsx', 'src/context/SocketContext.jsx', 'src/components/Header.jsx', 'vite.config.js'],
     firstQuestion: 'How do I structure a React dashboard with real-time WebSocket updates and animated components?',
     tags: ['React', 'Socket.IO', 'Framer Motion', 'Dashboard']
@@ -48,7 +48,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-28T14:00:00Z',
     updatedAt: '2026-02-28T17:55:00Z',
-    bulgariаnTopic: 'Автоматизация на Android устройства чрез ADB команди интегрирани с Claude AI за интелигентно управление на мобилни приложения.',
+    bulgarianTopic: 'Автоматизация на Android устройства чрез ADB команди интегрирани с Claude AI за интелигентно управление на мобилни приложения.',
     artifacts: ['server/routes/android.js', 'src/pages/AndroidControl.jsx', 'server/index.js'],
     firstQuestion: 'Can you help me build an ADB automation system that uses Claude to intelligently control Android devices?',
     tags: ['ADB', 'Android', 'Automation', 'Claude AI']
@@ -64,7 +64,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-26T10:30:00Z',
     updatedAt: '2026-02-26T14:15:00Z',
-    bulgariаnTopic: 'Изграждане на интелигентен скенер за документи с OCR, класификация на типове документи и извличане на структурирани данни с поддръжка на български език.',
+    bulgarianTopic: 'Изграждане на интелигентен скенер за документи с OCR, класификация на типове документи и извличане на структурирани данни с поддръжка на български език.',
     artifacts: ['server/routes/documentScanner.js', 'src/pages/SmartScan.jsx', 'prompts/scan-template.md'],
     firstQuestion: 'How do I implement an AI document scanner that can classify Bulgarian documents and extract data?',
     tags: ['OCR', 'Document Scanner', 'Bulgarian', 'AI Extraction']
@@ -80,7 +80,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-24T08:00:00Z',
     updatedAt: '2026-02-24T11:45:00Z',
-    bulgariаnTopic: 'Конфигуриране на автоматичен деплоймент пайплайн към Hostinger VPS с PM2, GitHub Actions и мониторинг на производителността.',
+    bulgarianTopic: 'Конфигуриране на автоматичен деплоймент пайплайн към Hostinger VPS с PM2, GitHub Actions и мониторинг на производителността.',
     artifacts: ['.github/workflows/deploy-hostinger-vps.yml', 'ecosystem.config.js', 'server/routes/hostinger.js'],
     firstQuestion: 'Help me set up an automated CI/CD pipeline to deploy my Node.js app to Hostinger VPS using PM2.',
     tags: ['Hostinger', 'PM2', 'GitHub Actions', 'Deployment']
@@ -96,7 +96,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-22T13:00:00Z',
     updatedAt: '2026-02-22T16:30:00Z',
-    bulgariаnTopic: 'Реализация на система за управление на достъп базирана на роли (RBAC) с три нива - Admin, Operator, Viewer и интеграция с Antigravity security framework.',
+    bulgarianTopic: 'Реализация на система за управление на достъп базирана на роли (RBAC) с три нива - Admin, Operator, Viewer и интеграция с Antigravity security framework.',
     artifacts: ['server/middleware/auth.js', 'server/services/permissions.js', 'antigravity-integration/'],
     firstQuestion: 'I need a robust RBAC system with Admin, Operator, and Viewer roles that integrates with our security framework.',
     tags: ['RBAC', 'Security', 'Middleware', 'Auth']
@@ -112,7 +112,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-20T09:45:00Z',
     updatedAt: '2026-02-20T12:20:00Z',
-    bulgariаnTopic: 'Интеграция на N8N автоматизационни работни процеси с Claude AI чрез webhook ендпойнти за тригериране на комплексни автоматизации.',
+    bulgarianTopic: 'Интеграция на N8N автоматизационни работни процеси с Claude AI чрез webhook ендпойнти за тригериране на комплексни автоматизации.',
     artifacts: ['server/routes/n8nWebhooks.js', 'n8n-workflows/main-workflow.json', 'server/index.js'],
     firstQuestion: 'How can I integrate N8N workflows with Claude AI to trigger automated actions via webhooks?',
     tags: ['N8N', 'Webhooks', 'Automation', 'Workflow']
@@ -128,7 +128,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-18T11:00:00Z',
     updatedAt: '2026-02-18T13:45:00Z',
-    bulgariаnTopic: 'Разработване на API за управление на Linux Desktop използвайки xdotool за симулация на клавиатура, мишка и скрийншоти с Claude Computer Use.',
+    bulgarianTopic: 'Разработване на API за управление на Linux Desktop използвайки xdotool за симулация на клавиатура, мишка и скрийншоти с Claude Computer Use.',
     artifacts: ['server/routes/computerUse.js', 'src/pages/ComputerControl.jsx', 'server/routes/claude.js'],
     firstQuestion: 'Build me a Linux desktop automation system using xdotool that Claude can control remotely.',
     tags: ['Linux', 'xdotool', 'Computer Use', 'Desktop Automation']
@@ -144,7 +144,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-16T14:30:00Z',
     updatedAt: '2026-02-16T17:00:00Z',
-    bulgariаnTopic: 'Имплементация на реално-времево стрийминг на екрана с Socket.IO и оптимизирано компресиране на изображения за минимална латентност.',
+    bulgarianTopic: 'Имплементация на реално-времево стрийминг на екрана с Socket.IO и оптимизирано компресиране на изображения за минимална латентност.',
     artifacts: ['server/socket/handlers.js', 'src/context/SocketContext.jsx', 'src/pages/ComputerControl.jsx'],
     firstQuestion: 'How do I stream a Linux desktop screen in real-time over WebSocket with minimal latency?',
     tags: ['WebRTC', 'Socket.IO', 'Streaming', 'Screen Capture']
@@ -160,7 +160,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-14T10:00:00Z',
     updatedAt: '2026-02-14T12:15:00Z',
-    bulgariаnTopic: 'Създаване на генератор за AI промпти с шаблони на български и английски език, с категории за различни задачи и персонализация.',
+    bulgarianTopic: 'Създаване на генератор за AI промпти с шаблони на български и английски език, с категории за различни задачи и персонализация.',
     artifacts: ['src/pages/PromptGenerator.jsx', 'prompts/bg-templates.md', 'prompts/en-templates.md'],
     firstQuestion: 'I need a prompt generator that supports both Bulgarian and English templates for different AI tasks.',
     tags: ['Prompts', 'Bulgarian', 'Templates', 'Multilingual']
@@ -176,7 +176,7 @@ const MOCK_SESSIONS = [
     })),
     createdAt: '2026-02-12T09:00:00Z',
     updatedAt: '2026-02-12T11:10:00Z',
-    bulgariаnTopic: 'Проектиране на схема за Supabase PostgreSQL база данни за съхранение на сесии, системни логове, потребителски данни и конфигурации.',
+    bulgarianTopic: 'Проектиране на схема за Supabase PostgreSQL база данни за съхранение на сесии, системни логове, потребителски данни и конфигурации.',
     artifacts: ['supabase/schema.sql', 'supabase/migrations/', 'server/db.js'],
     firstQuestion: 'Help me design a Supabase database schema that supports sessions, logs, and multi-tenant user data.',
     tags: ['Supabase', 'PostgreSQL', 'Schema', 'Database Design']
@@ -221,8 +221,7 @@ function loadAndRankSessions() {
 
       // Bulgarian topic fallback
       const bulgarianTopic =
-        s.bulgariаnTopic ||
-        s.bulgariаnTopic || // typo variant
+        s.bulgarianTopic ||
         s.description ||
         'Разговор с Claude AI за автоматизация и разработка на софтуер.';
 
