@@ -1,21 +1,10 @@
 import React, { useState } from 'react';
 
-const BUSINESS_TYPES = [
-  { value: '', label: 'Select business type...' },
-  { value: 'ООД', label: 'ООД (Limited Liability Company)' },
-  { value: 'ЕООД', label: 'ЕООД (Single-Member LLC)' },
-  { value: 'АД', label: 'АД (Joint-Stock Company)' },
-  { value: 'ЕАД', label: 'ЕАД (Single-Member JSC)' },
-  { value: 'ET', label: 'ЕТ (Sole Trader)' },
-  { value: 'SD', label: 'СД (General Partnership)' },
-  { value: 'KD', label: 'КД (Limited Partnership)' },
-];
-
 export default function EligibilityCheck() {
   const [formData, setFormData] = useState({
-    companyName: '',
-    registrationNumber: '',
-    businessType: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -35,7 +24,7 @@ export default function EligibilityCheck() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/eligibility/check', {
+      const response = await fetch('/api/wallester/check-eligibility', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -44,7 +33,7 @@ export default function EligibilityCheck() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || `Request failed with status ${response.status}`);
+        throw new Error(data?.reason || 'Check failed');
       }
 
       setResult(data);
@@ -56,9 +45,9 @@ export default function EligibilityCheck() {
   };
 
   const isFormValid =
-    formData.companyName.trim() &&
-    formData.registrationNumber.trim() &&
-    formData.businessType;
+    formData.firstName.trim() &&
+    formData.middleName.trim() &&
+    formData.lastName.trim();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -89,69 +78,64 @@ export default function EligibilityCheck() {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            {/* Company Name */}
+            {/* First Name */}
             <div>
               <label
-                htmlFor="companyName"
+                htmlFor="firstName"
                 className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                Company Name
+                First Name (Име)
               </label>
               <input
-                id="companyName"
+                id="firstName"
                 type="text"
-                name="companyName"
-                value={formData.companyName}
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
                 required
-                placeholder="e.g. Acme Trading ООД"
+                placeholder="e.g. Иван"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               />
             </div>
 
-            {/* Registration Number */}
+            {/* Middle Name */}
             <div>
               <label
-                htmlFor="registrationNumber"
+                htmlFor="middleName"
                 className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                Registration Number (UIC / ЕИК)
+                Middle Name (Презиме)
               </label>
               <input
-                id="registrationNumber"
+                id="middleName"
                 type="text"
-                name="registrationNumber"
-                value={formData.registrationNumber}
+                name="middleName"
+                value={formData.middleName}
                 onChange={handleChange}
                 required
-                placeholder="e.g. 123456789"
+                placeholder="e.g. Петров"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
               />
             </div>
 
-            {/* Business Type */}
+            {/* Last Name */}
             <div>
               <label
-                htmlFor="businessType"
+                htmlFor="lastName"
                 className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                Business Type
+                Last Name (Фамилия)
               </label>
-              <select
-                id="businessType"
-                name="businessType"
-                value={formData.businessType}
+              <input
+                id="lastName"
+                type="text"
+                name="lastName"
+                value={formData.lastName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition appearance-none"
-                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.2rem' }}
-              >
-                {BUSINESS_TYPES.map(({ value, label }) => (
-                  <option key={value} value={value} disabled={value === ''}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                placeholder="e.g. Георгиев"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              />
             </div>
 
             {/* Submit */}
@@ -256,7 +240,7 @@ export default function EligibilityCheck() {
                     result.eligible ? 'text-green-700' : 'text-amber-700'
                   }`}
                 >
-                  {result.eligible ? '✅ Eligible' : '❌ Not Eligible'}
+                  {result.eligible ? 'Eligible' : 'Not Eligible'}
                 </h3>
               </div>
               {result.reason && (
