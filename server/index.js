@@ -33,6 +33,7 @@ import { linearRouter } from './routes/linear.js';
 import { vercelRouter } from './routes/vercel.js';
 import { replicateRouter } from './routes/replicate.js';
 import { wallesterRouter } from './routes/wallester.js';
+import { contractSigningRouter } from './routes/contractSigning.js';
 
 dotenv.config();
 
@@ -146,6 +147,7 @@ app.use('/api/linear', linearRouter);
 app.use('/api/vercel', vercelRouter);
 app.use('/api/replicate', replicateRouter);
 app.use('/api/wallester', wallesterRouter);
+app.use('/api/registration', contractSigningRouter);
 app.use('/api/logs', logsRouter);
 
 // SSE Route for MCP SuperAssistant
