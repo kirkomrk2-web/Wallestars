@@ -17,6 +17,7 @@ vi.mock('@supabase/supabase-js', () => ({
 
 // Provide required env vars
 beforeEach(() => {
+  process.env.SUPABASE_URL = 'https://test-project.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
   process.env.TELEGRAM_BOT_TOKEN = '';
   process.env.TELEGRAM_CHAT_ID = '-100000000000';
@@ -24,6 +25,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.clearAllMocks();
+  delete process.env.SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 });
 

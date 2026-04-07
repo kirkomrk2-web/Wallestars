@@ -1,14 +1,18 @@
 // OTP Watchdog - alerts when registrations stuck in otp_pending > 15 minutes
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ansiaiuaygcfztabtknl.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const STUCK_THRESHOLD_MINUTES = 15;
 
-const supabase = SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+if (!SUPABASE_URL && SUPABASE_KEY) {
+  console.warn('⚠️ SUPABASE_URL is not set — OTP watchdog disabled');
+}
+
+const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 export async function checkStuckOtpRegistrations() {
   if (!supabase) return;
