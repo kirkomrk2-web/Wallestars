@@ -4,13 +4,14 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ansiaiuaygcfztabtknl.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1001234567890';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const STUCK_THRESHOLD_MINUTES = 15;
 
+const supabase = SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
 export async function checkStuckOtpRegistrations() {
-  if (!SUPABASE_KEY) return;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  if (!supabase) return;
 
   const cutoff = new Date(Date.now() - STUCK_THRESHOLD_MINUTES * 60 * 1000).toISOString();
 
