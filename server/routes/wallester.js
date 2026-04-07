@@ -1,6 +1,19 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 
 const router = express.Router();
+
+// Strict rate limiter for the public eligibility check endpoint
+const eligibilityRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // Max 10 requests per IP per window
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    eligible: false,
+    reason: 'Твърде много заявки. Моля, опитайте отново по-късно.',
+  },
+});
 
 /**
  * POST /api/wallester/check-eligibility
@@ -21,7 +34,7 @@ const router = express.Router();
  *   details?: object
  * }
  */
-router.post('/check-eligibility', async (req, res) => {
+router.post('/check-eligibility', eligibilityRateLimiter, async (req, res) => {
   try {
     const { firstName, middleName, lastName } = req.body;
 
@@ -30,6 +43,18 @@ router.post('/check-eligibility', async (req, res) => {
       return res.status(400).json({
         eligible: false,
         reason: 'Моля, попълнете всички три имена',
+        details: {}
+      });
+    }
+
+    // Validate name fields are strings and reasonable length
+    if (
+      typeof firstName !== 'string' || typeof middleName !== 'string' || typeof lastName !== 'string' ||
+      firstName.length > 100 || middleName.length > 100 || lastName.length > 100
+    ) {
+      return res.status(400).json({
+        eligible: false,
+        reason: 'Невалидни данни',
         details: {}
       });
     }
@@ -95,16 +120,26 @@ router.post('/check-eligibility', async (req, res) => {
     // Check eligibility criteria
     const eligibilityCheck = checkEligibilityCriteria(companyData);
 
-    res.json(eligibilityCheck);
+    // Sanitize response — remove sensitive fields before returning to public users
+    const safeResponse = {
+      eligible: eligibilityCheck.eligible,
+      reason: eligibilityCheck.reason,
+    };
+    if (eligibilityCheck.companyName) {
+      safeResponse.companyName = eligibilityCheck.companyName;
+    }
+    if (eligibilityCheck.details) {
+      const { hasExistingAccount, isBlacklisted, ...safeDetails } = eligibilityCheck.details;
+      safeResponse.details = safeDetails;
+    }
+
+    res.json(safeResponse);
 
   } catch (error) {
     console.error('Error checking eligibility:', error);
     res.status(500).json({
       eligible: false,
-      reason: 'Грешка при проверка на данните. Моля, опитайте отново.',
-      details: {
-        error: error.message
-      }
+      reason: 'Check failed',
     });
   }
 });
