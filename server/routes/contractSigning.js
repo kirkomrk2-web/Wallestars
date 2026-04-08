@@ -1,18 +1,22 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 
-// Startup guard: require Supabase env vars
-if (!process.env.SUPABASE_URL) {
-  throw new Error('SUPABASE_URL environment variable is required');
+let _supabase;
+function getSupabase() {
+  if (!_supabase) {
+    if (!process.env.SUPABASE_URL) {
+      throw new Error('SUPABASE_URL environment variable is required');
+    }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+    }
+    _supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return _supabase;
 }
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required');
-}
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 const router = express.Router();
 
@@ -42,6 +46,7 @@ router.post('/:id/sign-contract', async (req, res) => {
   try {
     // Verify the registration belongs to the requesting user
     // First fetch the record to check ownership
+    const supabase = getSupabase();
     const { data: existing, error: fetchError } = await supabase
       .from('registration_progress')
       .select('id, user_id, current_step')
