@@ -1,0 +1,85 @@
+{
+  "name": "APEX-00 — Intake Router (Webhook → Classify → Route)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "apex-intake",
+        "options": { "rawBody": true }
+      },
+      "id": "intake-webhook",
+      "name": "Intake Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "apex-intake-v1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify incoming artifact by file type and source\nconst input = $input.first().json;\nconst body = input.body || input;\n\nconst fileName = body.fileName || body.filename || body.name || '';\nconst source = body.source || body.platform || 'unknown';\nconst ext = fileName.split('.').pop().toLowerCase();\n\nconst typeMap = {\n  'json': 'workflow',\n  'md': 'document',\n  'sql': 'migration',\n  'py': 'script',\n  'sh': 'script',\n  'csv': 'data',\n  'pdf': 'document',\n  'png': 'screenshot',\n  'jpg': 'screenshot',\n  'jpeg': 'screenshot',\n  'mp3': 'audio',\n  'wav': 'audio',\n  'm4a': 'audio'\n};\n\nconst artifactType = typeMap[ext] || 'unknown';\nconst fareDestination = {\n  'workflow': 'n8n-workflows/',\n  'document': 'docs/',\n  'migration': 'supabase/migrations/',\n  'script': 'scripts/',\n  'data': '03_Reference/',\n  'screenshot': '06_Media/screenshots/',\n  'audio': '06_Media/audio/',\n  'unknown': '01_Inbox/'\n};\n\nreturn [{\n  json: {\n    ...body,\n    fileName,\n    extension: ext,\n    artifactType,\n    source,\n    fareRoute: fareDestination[artifactType] || '01_Inbox/',\n    classifiedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "classifier",
+      "name": "Classify Artifact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.artifactType }}", "value2": "workflow" }
+          ]
+        }
+      },
+      "id": "route-switch",
+      "name": "Route by Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "evidence_log",
+        "columns": "workflow_id,execution_id,mode,status,source_platform,artifact_type,artifact_ref,details,timestamp"
+      },
+      "id": "log-intake",
+      "name": "Log to Evidence Trail",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [920, 300],
+      "credentials": {
+        "supabaseApi": { "id": "WALLESTARS_SUPABASE_CRED_ID", "name": "Wallestars Supabase" }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8041248687",
+        "text": "=📥 APEX Intake\n• File: {{ $json.fileName }}\n• Type: {{ $json.artifactType }}\n• Route: {{ $json.fareRoute }}\n• Source: {{ $json.source }}",
+        "additionalFields": {}
+      },
+      "id": "notify-telegram",
+      "name": "Notify via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [920, 480],
+      "credentials": {
+        "telegramApi": { "id": "TELEGRAM_BOT_CRED_ID", "name": "Zarcheto Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Intake Webhook": { "main": [[ { "node": "Classify Artifact", "type": "main", "index": 0 } ]] },
+    "Classify Artifact": { "main": [[ { "node": "Route by Type", "type": "main", "index": 0 } ]] },
+    "Route by Type": {
+      "main": [
+        [ { "node": "Log to Evidence Trail", "type": "main", "index": 0 } ],
+        [ { "node": "Notify via Telegram", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "apex" }, { "name": "intake" }, { "name": "production" }]
+}

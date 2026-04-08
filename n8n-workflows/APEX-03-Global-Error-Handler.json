@@ -1,0 +1,60 @@
+{
+  "name": "Global Error Handler — Alert + Log + Remediate",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nreturn [{\n  json: {\n    workflow_id: error.execution?.workflowId || 'unknown',\n    execution_id: error.execution?.id || 'unknown',\n    mode: error.execution?.mode || 'unknown',\n    status: 'failed',\n    error_message: error.execution?.error?.message || 'Unknown error',\n    error_node: error.execution?.lastNodeExecuted || 'unknown',\n    timestamp: new Date().toISOString(),\n    source_platform: 'n8n',\n    artifact_type: 'error_log',\n    details: JSON.stringify({\n      workflow_name: error.workflow?.name,\n      retry_count: error.execution?.retryCount || 0,\n      started_at: error.execution?.startedAt\n    })\n  }\n}];"
+      },
+      "id": "parse-error",
+      "name": "Parse Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "evidence_log",
+        "columns": "workflow_id,execution_id,mode,status,source_platform,artifact_type,details,timestamp"
+      },
+      "id": "log-error",
+      "name": "Log Error to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [700, 200],
+      "credentials": {
+        "supabaseApi": { "id": "WALLESTARS_SUPABASE_CRED_ID", "name": "Wallestars Supabase" }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8041248687",
+        "text": "=🚨 WORKFLOW FAILURE\n\n• Workflow: {{ $json.workflow_id }}\n• Node: {{ $json.error_node }}\n• Error: {{ $json.error_message }}\n• Execution: {{ $json.execution_id }}\n• Time: {{ $json.timestamp }}\n\nCheck n8n dashboard for details.",
+        "additionalFields": {}
+      },
+      "id": "alert-telegram",
+      "name": "Alert via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [700, 420],
+      "credentials": {
+        "telegramApi": { "id": "TELEGRAM_BOT_CRED_ID", "name": "Zarcheto Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": { "main": [[ { "node": "Parse Error Details", "type": "main", "index": 0 } ]] },
+    "Parse Error Details": { "main": [[ { "node": "Log Error to Supabase", "type": "main", "index": 0 }, { "node": "Alert via Telegram", "type": "main", "index": 0 } ]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "error-handler" }, { "name": "production" }, { "name": "critical" }]
+}
