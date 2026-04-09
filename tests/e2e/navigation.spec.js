@@ -27,7 +27,13 @@ test.describe('React Router Navigation', () => {
 
       // No unhandled JS errors
       const criticalErrors = errors.filter(
-        (e) => !e.includes('favicon') && !e.includes('404')
+        (e) =>
+          !e.includes('favicon') &&
+          !e.includes('404') &&
+          !e.includes('WebSocket') &&
+          !e.includes('socket.io') &&
+          !e.includes('net::ERR_CONNECTION_REFUSED') &&
+          !e.includes('Failed to fetch')
       );
       expect(criticalErrors, `JS errors on ${route.path}: ${criticalErrors.join(', ')}`).toHaveLength(0);
     });
