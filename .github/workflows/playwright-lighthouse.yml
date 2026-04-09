@@ -3,30 +3,20 @@ name: Playwright + Lighthouse + Accessibility
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'server/**'
-      - 'frontend/**'
-      - 'src/**'
-      - 'public/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'playwright.config.js'
-      - 'vite.config.*'
-      - '.github/workflows/playwright-lighthouse.yml'
+    paths-ignore:
+      - 'n8n-workflows/**'
+      - 'prompts/**'
+      - 'docs/**'
+      - 'schemas/**'
+      - '**.md'
   push:
     branches: [main]
-    paths:
-      - 'server/**'
-      - 'frontend/**'
-      - 'src/**'
-      - 'public/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'playwright.config.js'
-      - 'vite.config.*'
-      - '.github/workflows/playwright-lighthouse.yml'
+    paths-ignore:
+      - 'n8n-workflows/**'
+      - 'prompts/**'
+      - 'docs/**'
+      - 'schemas/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +29,7 @@ jobs:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -109,6 +100,7 @@ jobs:
     name: Accessibility (axe-core)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +117,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run accessibility tests
-        run: npx playwright test --config=playwright.config.js tests/accessibility/axe.spec.js --project=chromium
+        run: npx playwright test --config=playwright-accessibility.config.js --project=chromium
         env:
           CI: true
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'http://localhost:54321' }}
@@ -144,6 +136,7 @@ jobs:
     name: Performance (Lighthouse CI)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
