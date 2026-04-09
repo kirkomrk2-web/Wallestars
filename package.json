@@ -19,7 +19,7 @@
     "prestart": "node validate-env.js",
     "test:e2e": "playwright test tests/e2e",
     "test:e2e:headed": "playwright test tests/e2e --headed",
-    "test:accessibility": "playwright test tests/accessibility",
+    "test:accessibility": "playwright test --config=playwright-accessibility.config.js",
     "test:lighthouse": "lhci autorun"
   },
   "keywords": [

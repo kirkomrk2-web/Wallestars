@@ -1,0 +1,53 @@
+{
+  "name": "Evidence Logger — Audit Trail to Supabase",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "evidence-logger-v1"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "evidence_log",
+        "columns": "workflow_id,execution_id,mode,status,source_platform,artifact_type,artifact_ref,pr_link,timestamp,details",
+        "options": {}
+      },
+      "id": "supabase-insert",
+      "name": "Insert Evidence Record",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "credentials": {
+        "supabaseApi": { "id": "WALLESTARS_SUPABASE_CRED_ID", "name": "Wallestars Supabase" }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8041248687",
+        "text": "=📋 Evidence Logged:\n• Workflow: {{ $json.workflow_id }}\n• Execution: {{ $json.execution_id }}\n• Status: {{ $json.status }}\n• Platform: {{ $json.source_platform }}\n• Artifact: {{ $json.artifact_type }}",
+        "additionalFields": {}
+      },
+      "id": "telegram-notify",
+      "name": "Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [700, 300],
+      "credentials": {
+        "telegramApi": { "id": "TELEGRAM_BOT_CRED_ID", "name": "Zarcheto Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": { "main": [[ { "node": "Insert Evidence Record", "type": "main", "index": 0 } ]] },
+    "Insert Evidence Record": { "main": [[ { "node": "Telegram Notification", "type": "main", "index": 0 } ]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [{ "name": "audit" }, { "name": "evidence" }, { "name": "production" }]
+}

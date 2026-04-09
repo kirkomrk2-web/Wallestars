@@ -1,0 +1,70 @@
+{
+  "version": "2.0",
+  "generated_at": "2026-04-08T19:14:00+03:00",
+  "platforms": {
+    "n8n": {
+      "status": "connected",
+      "endpoint": "https://n8n.srv1201204.hstgr.cloud",
+      "last_check": "2026-04-08T16:00:00+03:00",
+      "details": { "container": "FingAgent", "restarted": "2026-04-08T15:32:00+03:00" }
+    },
+    "supabase": {
+      "status": "connected",
+      "endpoint": "https://ansiaiuaygcfztabtknl.supabase.co",
+      "last_check": "2026-04-08T19:14:00+03:00",
+      "details": { "project": "Walle", "org": "33mailbox.org PRO", "tables": 105 }
+    },
+    "cloudflare": {
+      "status": "connected",
+      "endpoint": "https://api.cloudflare.com/client/v4/",
+      "last_check": "2026-04-08T15:49:00+03:00",
+      "details": { "token_rotated": true, "tested_in_n8n": true }
+    },
+    "github": {
+      "status": "connected",
+      "endpoint": "https://api.github.com",
+      "last_check": "2026-04-08T19:14:00+03:00",
+      "details": { "pats_regenerated": true, "repos_accessible": 20, "open_prs": 0, "ci_green": true }
+    },
+    "perplexity": {
+      "status": "connected",
+      "endpoint": "perplexity.ai/computer",
+      "last_check": "2026-04-08T19:14:00+03:00",
+      "details": { "crons_active": 6, "subagents_today": 4 }
+    }
+  },
+  "credentials": {
+    "total": 10,
+    "active": 8,
+    "compromised": 0,
+    "expired": 0,
+    "rotation_pending": 1,
+    "items": [
+      { "name": "supabase_wallestars_anon", "type": "api_key", "status": "active", "stored_in": "supabase_dashboard", "rotation_schedule": "manual" },
+      { "name": "github_pat_kirkomrk2-web", "type": "pat", "status": "active", "stored_in": "n8n_credentials", "rotation_schedule": "90_days" },
+      { "name": "cloudflare_api_token", "type": "api_token", "status": "active", "stored_in": "n8n_credentials", "rotation_schedule": "90_days" },
+      { "name": "duoplus_api_key", "type": "api_key", "status": "active", "stored_in": "keepass", "rotation_schedule": "on_renewal" }
+    ]
+  },
+  "evidence": {
+    "total_records": 11,
+    "latest_record": "2026-04-08T19:14:00+03:00",
+    "by_platform": { "github": 4, "supabase": 3, "manual": 3, "n8n": 1 },
+    "by_status": { "success": 9, "blocked": 2 }
+  },
+  "workflows": [
+    { "name": "APEX-00 Intake Router", "id": "pending-import", "active": false, "error_workflow_assigned": true },
+    { "name": "APEX-01 Evidence Logger", "id": "pending-import", "active": false, "error_workflow_assigned": true },
+    { "name": "APEX-02 Credential Drift Monitor", "id": "pending-import", "active": false, "error_workflow_assigned": true },
+    { "name": "APEX-03 Global Error Handler", "id": "pending-import", "active": false, "error_workflow_assigned": false }
+  ],
+  "blockers": [
+    {
+      "id": "BLOCK-001",
+      "description": "Wallesters-org OAuth app restriction blocks Perplexity GitHub agent",
+      "platform": "github",
+      "severity": "medium",
+      "resolution": "Grant OAuth app access in org settings or push via local PAT"
+    }
+  ]
+}

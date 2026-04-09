@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "APEX Unified Context Schema",
+  "description": "Schema for unified context artifacts produced by the APEX framework. Each artifact represents a complete operational state snapshot.",
+  "type": "object",
+  "required": ["version", "generated_at", "platforms", "credentials", "evidence"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "2.0",
+      "description": "Schema version"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of generation"
+    },
+    "platforms": {
+      "type": "object",
+      "description": "Status of each platform in the 5-platform stack",
+      "required": ["n8n", "supabase", "cloudflare", "github", "perplexity"],
+      "properties": {
+        "n8n": { "$ref": "#/definitions/platformStatus" },
+        "supabase": { "$ref": "#/definitions/platformStatus" },
+        "cloudflare": { "$ref": "#/definitions/platformStatus" },
+        "github": { "$ref": "#/definitions/platformStatus" },
+        "perplexity": { "$ref": "#/definitions/platformStatus" }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "description": "Credential registry summary (metadata only, NO secrets)",
+      "properties": {
+        "total": { "type": "integer" },
+        "active": { "type": "integer" },
+        "compromised": { "type": "integer" },
+        "expired": { "type": "integer" },
+        "rotation_pending": { "type": "integer" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/credentialMeta" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Evidence log summary",
+      "properties": {
+        "total_records": { "type": "integer" },
+        "latest_record": { "type": "string", "format": "date-time" },
+        "by_platform": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "by_status": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        }
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "description": "Active n8n workflows",
+      "items": { "$ref": "#/definitions/workflowMeta" }
+    },
+    "blockers": {
+      "type": "array",
+      "description": "Current blockers preventing progress",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "platform": { "type": "string" },
+          "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+          "resolution": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "platformStatus": {
+      "type": "object",
+      "required": ["status", "last_check"],
+      "properties": {
+        "status": { "type": "string", "enum": ["connected", "disconnected", "degraded", "unknown"] },
+        "endpoint": { "type": "string" },
+        "last_check": { "type": "string", "format": "date-time" },
+        "details": { "type": "object" }
+      }
+    },
+    "credentialMeta": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "stored_in": { "type": "string", "description": "Location (no plaintext)" },
+        "last_validated": { "type": "string", "format": "date-time" },
+        "rotation_schedule": { "type": "string" }
+      }
+    },
+    "workflowMeta": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "id": { "type": "string" },
+        "active": { "type": "boolean" },
+        "last_execution": { "type": "string", "format": "date-time" },
+        "error_workflow_assigned": { "type": "boolean" }
+      }
+    }
+  }
+}
