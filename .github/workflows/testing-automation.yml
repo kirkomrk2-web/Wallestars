@@ -23,170 +23,185 @@ jobs:
       matrix:
         node-version: [20.x, 22.x]
         test-suite: [unit, integration, e2e]
-    
     name: Тестове (${{ matrix.test-suite }}) - Node ${{ matrix.node-version }}
-    
     steps:
-      - name: Checkout код
-        uses: actions/checkout@v4
+    - name: Checkout код
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
 
-      - name: Инсталирай dependencies
-        run: npm ci --legacy-peer-deps
+    - name: Инсталирай dependencies
+      run: npm ci --legacy-peer-deps
 
-      - name: Пусни ${{ matrix.test-suite }} тестове
-        run: |
-          case "${{ matrix.test-suite }}" in
-            unit)
-              npm run test:unit || echo "Unit tests not configured"
-              ;;
-            integration)
-              npm run test:integration || echo "Integration tests not configured"
-              ;;
-            e2e)
-              npm run test:e2e || echo "E2E tests not configured"
-              ;;
-          esac
-        continue-on-error: true
+    # --- Playwright: само за e2e матрица ---
+    - name: Cache Playwright browsers
+      if: matrix.test-suite == 'e2e'
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-${{ matrix.node-version }}-
+          playwright-${{ runner.os }}-
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.test-suite }}-node-${{ matrix.node-version }}
-          path: |
-            coverage/
-            test-results/
-          retention-days: 30
+    - name: Провери реалното съществуване на Playwright браузъри
+      if: matrix.test-suite == 'e2e'
+      id: playwright-check
+      run: |
+        # Намери очакваната версия на Playwright от node_modules
+        PW_VERSION=$(node -e "try { console.log(require('./node_modules/playwright/package.json').version) } catch(e) { console.log('not-found') }" 2>/dev/null || echo 'not-found')
+        echo "Playwright version from node_modules: $PW_VERSION"
+
+        # Определи пътя за Chromium headless shell (проверка дали РЕАЛНО съществува изпълним файл)
+        CHROMIUM_PATH=$(npx playwright show-trace --help 2>/dev/null; \
+          find ~/.cache/ms-playwright -name 'chrome-headless-shell' -type f 2>/dev/null | head -1 || echo '')
+
+        if [ -n "$CHROMIUM_PATH" ] && [ -f "$CHROMIUM_PATH" ] && [ -x "$CHROMIUM_PATH" ]; then
+          echo "browsers-exist=true" >> $GITHUB_OUTPUT
+          echo "✅ Playwright browsers реално съществуват: $CHROMIUM_PATH"
+        else
+          echo "browsers-exist=false" >> $GITHUB_OUTPUT
+          echo "⚠️ Playwright браузърите НЕ съществуват или не са изпълними — ще бъдат инсталирани"
+        fi
+
+    - name: Инсталирай Playwright браузъри (ако липсват)
+      if: matrix.test-suite == 'e2e' && steps.playwright-check.outputs.browsers-exist != 'true'
+      run: |
+        echo "📦 Инсталиране на Playwright браузъри..."
+        npx playwright install --with-deps chromium firefox
+        echo "✅ Playwright браузъри инсталирани"
+
+    - name: Потвърди Playwright инсталацията
+      if: matrix.test-suite == 'e2e'
+      run: |
+        # Финална проверка — гарантира, че браузърите са наистина достъпни
+        CHROME=$(find ~/.cache/ms-playwright -name 'chrome-headless-shell' -type f 2>/dev/null | head -1 || echo '')
+        if [ -z "$CHROME" ] || [ ! -x "$CHROME" ]; then
+          echo "::warning::chrome-headless-shell не е намерен след инсталация — принудителна преинсталация"
+          npx playwright install --with-deps chromium firefox
+        else
+          echo "✅ Playwright готов: $CHROME"
+        fi
+
+    - name: Пусни ${{ matrix.test-suite }} тестове
+      run: |
+        case "${{ matrix.test-suite }}" in
+        unit)
+          npm run test:unit || echo "Unit tests not configured"
+          ;;
+        integration)
+          npm run test:integration || echo "Integration tests not configured"
+          ;;
+        e2e)
+          npm run test:e2e || echo "E2E tests not configured"
+          ;;
+        esac
+      continue-on-error: true
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.test-suite }}-node-${{ matrix.node-version }}
+        path: |
+          coverage/
+          test-results/
+        retention-days: 30
 
   code-quality:
     runs-on: ubuntu-latest
     name: Code Quality Check
-    
     steps:
-      - name: Checkout код
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Инсталирай dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Run ESLint
-        run: npm run lint || echo "Linting completed with warnings"
-        continue-on-error: true
-
-      - name: Check code formatting
-        run: npm run format:check || echo "Format check completed"
-        continue-on-error: true
-
-      - name: Run type check
-        run: npm run type-check || echo "Type check not configured"
-        continue-on-error: true
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: {node-version: '20.x', cache: 'npm'}
+    - run: npm ci --legacy-peer-deps
+    - name: Run ESLint
+      run: npm run lint || echo "Linting completed with warnings"
+      continue-on-error: true
+    - name: Check code formatting
+      run: npm run format:check || echo "Format check completed"
+      continue-on-error: true
+    - name: Run type check
+      run: npm run type-check || echo "Type check not configured"
+      continue-on-error: true
 
   security-scan:
     runs-on: ubuntu-latest
     name: Security Scanning
-    
     steps:
-      - name: Checkout код
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Инсталирай dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate || echo "Audit completed with warnings"
-        continue-on-error: true
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: {node-version: '20.x', cache: 'npm'}
+    - run: npm ci --legacy-peer-deps
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate || echo "Audit completed with warnings"
+      continue-on-error: true
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      if: github.event_name == 'pull_request'
+      continue-on-error: true
 
   build-verification:
     runs-on: ubuntu-latest
     name: Build Verification
     needs: [run-tests, code-quality]
-    
     steps:
-      - name: Checkout код
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Инсталирай dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Build за production
-        run: npm run build
-
-      - name: Verify build artifacts
-        run: |
-          if [ -d "dist" ]; then
-            echo "✅ Build successful - dist directory created"
-            ls -lah dist/
-          else
-            echo "❌ Build failed - dist directory not found"
-            exit 1
-          fi
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-build
-          path: dist/
-          retention-days: 7
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: {node-version: '20.x', cache: 'npm'}
+    - run: npm ci --legacy-peer-deps
+    - name: Build за production
+      run: npm run build
+    - name: Verify build artifacts
+      run: |
+        if [ -d "dist" ]; then
+          echo "✅ Build successful - dist directory created"
+          ls -lah dist/
+        else
+          echo "❌ Build failed - dist directory not found"
+          exit 1
+        fi
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: production-build
+        path: dist/
+        retention-days: 7
 
   trigger-airtop-session:
     runs-on: ubuntu-latest
     name: Създай Test Session
     needs: build-verification
-    # Skip for fork PRs — GITHUB_TOKEN lacks write permissions for cross-repo triggers
-    # Prevents: HttpError: Resource not accessible by integration
     if: |
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository
     env:
       N8N_AIRTOP_WEBHOOK_URL: ${{ secrets.N8N_AIRTOP_WEBHOOK_URL }}
-    
     steps:
-      - name: Trigger Airtop Test Session via n8n
-        run: |
-          if [ -z "${N8N_AIRTOP_WEBHOOK_URL}" ]; then
-            echo "⚠️  N8N_AIRTOP_WEBHOOK_URL not configured — skipping"
-            exit 0
-          fi
-          HTTP_STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
-            -X POST "${N8N_AIRTOP_WEBHOOK_URL}" \
-            -H "Content-Type: application/json" \
-            -d "{\"event\":\"pr_test_session\",\"pr_number\":\"${{ github.event.pull_request.number }}\",\"repo\":\"${{ github.repository }}\",\"sha\":\"${{ github.sha }}\"}")
-          echo "n8n: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-            echo "✅ Airtop session triggered"
-          else
-            echo "⚠️  n8n returned $HTTP_STATUS — non-blocking"
-          fi
-        continue-on-error: true
+    - name: Trigger Airtop Test Session via n8n
+      continue-on-error: true
+      run: |
+        if [ -z "${N8N_AIRTOP_WEBHOOK_URL}" ]; then
+          echo "⚠️ N8N_AIRTOP_WEBHOOK_URL not configured — skipping"
+          exit 0
+        fi
+        HTTP_STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+          --max-time 25 --connect-timeout 10 \
+          -X POST "${N8N_AIRTOP_WEBHOOK_URL}" \
+          -H "Content-Type: application/json" \
+          -d "{\"event\":\"pr_test_session\",\"pr_number\":\"${{ github.event.pull_request.number }}\",\"repo\":\"${{ github.repository }}\",\"sha\":\"${{ github.sha }}\"}")
+        echo "n8n: $HTTP_STATUS"
+        if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+          echo "✅ Airtop session triggered"
+        else
+          echo "⚠️ n8n returned $HTTP_STATUS — non-blocking"
+        fi
 
   notify-results:
     runs-on: ubuntu-latest
@@ -195,31 +210,30 @@ jobs:
     if: always()
     env:
       N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
-    
     steps:
-      - name: Изпрати резултати към n8n (non-blocking)
-        if: ${{ env.N8N_WEBHOOK_URL != '' }}
-        continue-on-error: true
-        run: |
-          set +e
-          HTTP=$(curl -sS -o /tmp/n8n_resp.txt -w '%{http_code}' \
-            --max-time 25 --connect-timeout 10 --retry 1 --retry-delay 5 \
-            -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "workflow": "testing-automation",
-              "tests_passed": "${{ needs.run-tests.result }}",
-              "code_quality": "${{ needs.code-quality.result }}",
-              "security_scan": "${{ needs.security-scan.result }}",
-              "build_verification": "${{ needs.build-verification.result }}",
-              "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-              "repository": "${{ github.repository }}",
-              "pr_number": "${{ github.event.pull_request.number || 'N/A' }}"
-            }')
-          EXIT=$?
-          if [ $EXIT -ne 0 ] || [ "${HTTP:0:1}" != "2" ]; then
-            echo "::warning title=n8n webhook unavailable::POST /webhook/test-results → exit=$EXIT http=$HTTP (non-blocking)"
-          else
-            echo "::notice::n8n webhook OK ($HTTP)"
-          fi
-          exit 0
+    - name: Изпрати резултати към n8n (non-blocking)
+      if: ${{ env.N8N_WEBHOOK_URL != '' }}
+      continue-on-error: true
+      run: |
+        set +e
+        HTTP=$(curl -sS -o /tmp/n8n_resp.txt -w '%{http_code}' \
+          --max-time 25 --connect-timeout 10 --retry 1 --retry-delay 5 \
+          -X POST "${N8N_WEBHOOK_URL}/webhook/test-results" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "workflow": "testing-automation",
+            "tests_passed": "${{ needs.run-tests.result }}",
+            "code_quality": "${{ needs.code-quality.result }}",
+            "security_scan": "${{ needs.security-scan.result }}",
+            "build_verification": "${{ needs.build-verification.result }}",
+            "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+            "repository": "${{ github.repository }}",
+            "pr_number": "${{ github.event.pull_request.number || 'N/A' }}"
+          }')
+        EXIT=$?
+        if [ $EXIT -ne 0 ] || [ "${HTTP:0:1}" != "2" ]; then
+          echo "::warning title=n8n webhook unavailable::POST /webhook/test-results → exit=$EXIT http=$HTTP (non-blocking)"
+        else
+          echo "::notice::n8n webhook OK ($HTTP)"
+        fi
+        exit 0
