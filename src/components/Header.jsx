@@ -41,6 +41,8 @@ export default function Header({ toggleSidebar, sidebarOpen }) {
               whileTap={{ scale: 0.9 }}
               onClick={toggleSidebar}
               className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+              aria-expanded={sidebarOpen}
             >
               <Menu className="w-5 h-5" />
             </motion.button>

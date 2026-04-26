@@ -67,8 +67,9 @@ export default function Settings() {
         </h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-dark-400 mb-2">API Key</label>
+            <label htmlFor="anthropic-api-key" className="block text-sm text-dark-400 mb-2">API Key</label>
             <input
+              id="anthropic-api-key"
               type="password"
               value={settings.apiKey}
               onChange={(e) => handleChange('apiKey', e.target.value)}
@@ -109,10 +110,11 @@ export default function Settings() {
             onChange={(checked) => handleChange('computerUseEnabled', checked)}
           />
           <div>
-            <label className="block text-sm text-dark-400 mb-2">
+            <label htmlFor="screenshot-interval" className="block text-sm text-dark-400 mb-2">
               Screenshot Interval (ms)
             </label>
             <input
+              id="screenshot-interval"
               type="number"
               value={settings.screenshotInterval}
               onChange={(e) => handleChange('screenshotInterval', parseInt(e.target.value))}
@@ -162,8 +164,9 @@ export default function Settings() {
           />
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-dark-400 mb-2">ADB Host</label>
+              <label htmlFor="adb-host" className="block text-sm text-dark-400 mb-2">ADB Host</label>
               <input
+                id="adb-host"
                 type="text"
                 value={settings.adbHost}
                 onChange={(e) => handleChange('adbHost', e.target.value)}
@@ -171,8 +174,9 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="block text-sm text-dark-400 mb-2">ADB Port</label>
+              <label htmlFor="adb-port" className="block text-sm text-dark-400 mb-2">ADB Port</label>
               <input
+                id="adb-port"
                 type="number"
                 value={settings.adbPort}
                 onChange={(e) => handleChange('adbPort', parseInt(e.target.value))}
@@ -267,6 +271,9 @@ function ToggleSetting({ label, description, checked, onChange }) {
           className={`relative w-14 h-7 rounded-full transition-colors ${
             checked ? 'bg-primary-500' : 'bg-dark-700'
           }`}
+          role="switch"
+          aria-checked={checked}
+          aria-label={label}
         >
           <motion.div
             animate={{ x: checked ? 28 : 2 }}

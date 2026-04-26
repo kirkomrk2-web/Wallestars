@@ -39,6 +39,7 @@ export default function SystemLogs() {
         <button
           onClick={fetchLogs}
           className="p-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors text-white"
+          aria-label="Refresh system logs"
         >
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>

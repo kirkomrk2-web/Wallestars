@@ -344,6 +344,8 @@ export default function ClaudeChat() {
         whileTap={{ scale: 0.9 }}
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed left-6 top-24 z-10 btn-secondary p-2 rounded-full"
+        aria-label={sidebarOpen ? 'Collapse sessions sidebar' : 'Expand sessions sidebar'}
+        aria-expanded={sidebarOpen}
       >
         {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
       </motion.button>
@@ -528,6 +530,7 @@ export default function ClaudeChat() {
               onClick={handleSend}
               disabled={isLoading || !input.trim()}
               className="btn-primary h-20 px-8 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={isLoading ? 'Sending message' : 'Send message'}
             >
               {isLoading ? (
                 <Loader className="w-5 h-5 animate-spin" />

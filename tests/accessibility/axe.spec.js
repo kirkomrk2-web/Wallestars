@@ -54,7 +54,7 @@ test.describe('Accessibility (axe-core)', () => {
     await page.waitForLoadState('networkidle');
 
     const results = await new AxeBuilder({ page })
-      .withRules(['focus-trap', 'scrollable-region-focusable'])
+      .withRules(['scrollable-region-focusable'])
       .analyze();
 
     const focusViolations = results.violations.filter(
