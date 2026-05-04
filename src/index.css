@@ -214,8 +214,35 @@
   .card, .card-ultra, .card-interactive {
     @apply p-4;
   }
-  
+
   .btn-primary, .btn-secondary {
     @apply px-4 py-2.5 text-sm;
+  }
+}
+
+/* Animation delay utilities (used for staggered background blobs) */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-gradient,
+  .pulse-ring,
+  .shimmer {
+    animation: none !important;
   }
 }
