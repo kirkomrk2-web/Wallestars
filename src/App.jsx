@@ -1,6 +1,6 @@
 import React, { useState, Suspense, lazy, Component } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SystemLogs from './pages/SystemLogs';
@@ -66,6 +66,7 @@ function App() {
   return (
     <ThemeProvider>
       <SocketProvider>
+        <MotionConfig reducedMotion="user">
         <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 animate-gradient">
         {/* Background effects */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -126,6 +127,7 @@ function App() {
           </div>
         </div>
         </div>
+        </MotionConfig>
       </SocketProvider>
     </ThemeProvider>
   );
