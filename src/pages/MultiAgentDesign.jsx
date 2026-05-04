@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { tabSpring, buttonTap } from '../utils/motion';
 import {
   Brain,
   Network,
@@ -312,20 +313,27 @@ export default function MultiAgentDesign() {
       <div className="flex flex-wrap gap-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
           return (
             <motion.button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30'
-                  : 'glass-effect-hover text-dark-300 hover:text-white'
+              {...buttonTap}
+              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm overflow-hidden ${
+                isActive
+                  ? 'text-white shadow-lg shadow-indigo-500/30'
+                  : 'glass-effect-hover text-dark-300 hover:text-white transition-colors duration-200'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              {tab.label}
+              {isActive && (
+                <motion.div
+                  layoutId="multiAgentActiveTab"
+                  className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600"
+                  transition={tabSpring}
+                />
+              )}
+              <Icon className="w-4 h-4 relative z-10" />
+              <span className="relative z-10">{tab.label}</span>
             </motion.button>
           );
         })}
