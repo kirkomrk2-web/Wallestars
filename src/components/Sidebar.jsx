@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
+import { tabSpring } from '../utils/motion';
 import {
   LayoutDashboard,
   MessageSquare,
@@ -89,7 +90,7 @@ export default function Sidebar({ isOpen }) {
                       <motion.div
                         layoutId="activeTab"
                         className="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-600"
-                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                        transition={tabSpring}
                       />
                     )}
 

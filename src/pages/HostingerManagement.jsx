@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { tabSpring } from '../utils/motion';
 import { 
   Server, 
   CreditCard, 
@@ -283,19 +284,31 @@ export default function HostingerManagement() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto">
-          {['overview', 'vps', 'subscriptions', 'billing'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeTab === tab
-                  ? 'bg-sky-500 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+          {['overview', 'vps', 'subscriptions', 'billing'].map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative px-4 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'text-white'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="hostingerActiveTab"
+                    className="absolute inset-0 bg-sky-500 rounded-lg"
+                    transition={tabSpring}
+                  />
+                )}
+                <span className="relative z-10">
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Content */}
